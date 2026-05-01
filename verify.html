@@ -34,7 +34,7 @@
 <div class="page page--narrow">
 
 <h1>Verify Your Email</h1>
-<p class="lead">To connect with qualified buyers, please verify the email address you entered.</p>
+<p class="lead">Confirm your email address to unlock your full, printable valuation report.</p>
 
 <div class="card verify-card">
   <p>We've sent a 6-digit verification code to <strong id="masked-email">your email</strong>.</p>
@@ -92,7 +92,7 @@ document.getElementById('verify-form').addEventListener('submit', async (e) => {
     const res = await submitCode(email, code);
     if (res.verified) {
       flow.markVerified();
-      location.href = 'submit.html';
+      location.href = 'report.html';
     } else {
       setHelper(res.reason || 'Invalid code.', true);
       verifyBtn.disabled = false;

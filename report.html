@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Valuation Report — MDCopia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&family=Courier+Prime:wght@700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='90' font-family='Georgia,serif' font-weight='700' fill='%231B3A6B'%3EM%3C/text%3E%3C/svg%3E">
+<style>
+  /* Print-only refinements: hide nav/footer/buttons, tighten margins, add page header */
+  @media print {
+    body { visibility: visible !important; }
+    .nav, .footer, .no-print { display: none !important; }
+    main { padding-top: 0 !important; }
+    .page { padding: 0 !important; max-width: none !important; }
+    .report__brand { display: block !important; }
+    .report-card { border: 0 !important; padding: 0 !important; }
+    a { color: var(--near-black) !important; text-decoration: none !important; }
+    @page { margin: 0.6in 0.8in; }
+  }
+  .report__brand { display: none; text-align: center; margin-bottom: 32px; }
+  .report__brand-mark {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .report__brand-mark .md { color: var(--royal-blue); }
+  .report__brand-mark .copia { color: var(--gold); }
+  .report__brand-tag {
+    font-size: 13px;
+    color: var(--mid-grey);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .report-card { padding: 40px; }
+  .report-meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 24px;
+    font-size: 15px;
+    border-top: 1px solid var(--light-grey);
+    border-bottom: 1px solid var(--light-grey);
+    padding: 16px 0;
+    margin: 24px 0 32px;
+  }
+  .report-meta dt { color: var(--dark-grey); font-weight: 600; }
+  .report-meta dd { margin: 0; color: var(--near-black); }
+  .report-range {
+    text-align: center;
+    margin: 32px 0;
+  }
+  .report-range__accent {
+    width: 80px; height: 2px;
+    background: var(--gold);
+    margin: 0 auto 16px;
+  }
+  .report-range__value {
+    font-family: var(--font-display);
+    font-size: 44px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .report-range__label {
+    font-size: 14px;
+    color: var(--mid-grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--light-grey);
+  }
+  .disclaimer {
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--mid-grey);
+    line-height: 1.5;
+  }
+</style>
+<script src="js/gate.js"></script>
+</head>
+<body>
+
+<nav class="nav no-print">
+  <input type="checkbox" id="nav-toggle">
+  <div class="nav__inner">
+    <a href="index.html" class="nav__logo"><span class="md">MD</span><span class="c">C</span></a>
+    <div class="nav__links">
+      <a href="valuation.html">Valuation</a>
+      <a href="why.html">Why MDCopia</a>
+    </div>
+    <label for="nav-toggle" class="nav__toggle"><span></span><span></span><span></span></label>
+  </div>
+  <div class="nav__panel">
+    <a href="valuation.html">Valuation</a>
+    <a href="why.html">Why MDCopia</a>
+  </div>
+</nav>
+
+<main>
+<div class="page page--narrow">
+
+<div class="no-print">
+  <h1>Your Valuation Report</h1>
+  <p class="lead">Below is your full report. Use the <strong>Print</strong> button to save it as a PDF or print a hard copy. Your information has been recorded with MDCopia.</p>
+</div>
+
+<article class="card report-card">
+  <div class="report__brand">
+    <p class="report__brand-mark"><span class="md">MD</span><span class="copia">Copia</span></p>
+    <p class="report__brand-tag">Confidential Practice Valuation</p>
+  </div>
+
+  <h2 style="font-size:24px;margin-top:0;">Practice Valuation Summary</h2>
+  <dl class="report-meta">
+    <dt>Practice</dt><dd id="r-practice">—</dd>
+    <dt>Specialty</dt><dd id="r-specialty">—</dd>
+    <dt>Location</dt><dd id="r-location">—</dd>
+    <dt>Annual Revenue (reported)</dt><dd id="r-revenue">—</dd>
+    <dt>Annual Visits (reported)</dt><dd id="r-visits">—</dd>
+    <dt>Sites</dt><dd id="r-sites">—</dd>
+    <dt>Real Estate</dt><dd id="r-realestate">—</dd>
+    <dt>Sale Timeline</dt><dd id="r-timeline">—</dd>
+    <dt>Report Date</dt><dd id="r-date">—</dd>
+  </dl>
+
+  <div class="report-range">
+    <div class="report-range__accent"></div>
+    <p class="report-range__value" id="r-range">$—</p>
+    <p class="report-range__label">Estimated Enterprise Value Range</p>
+  </div>
+
+  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:32px;">Methodology</h3>
+  <p id="r-methodology" style="color:var(--dark-grey);"></p>
+
+  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:24px;">Key Factors</h3>
+  <dl class="factors__grid" id="r-factors" style="display:grid;grid-template-columns:max-content 1fr;gap:8px 24px;font-size:15px;"></dl>
+
+  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:24px;">Data Sources</h3>
+  <p id="r-sources" style="color:var(--mid-grey);font-size:14px;"></p>
+
+  <p class="disclaimer">
+    This valuation is an indicative range produced by MDCopia's proprietary engine using public data sources, specialty-specific multipliers, and geographic market adjustments. It is not a formal appraisal, fairness opinion, or investment advice. Final transaction value depends on buyer-specific synergies, due diligence findings, deal structure, and current market conditions. MDCopia, LLC makes no warranty as to the accuracy of this estimate or the outcome of any transaction.
+  </p>
+</article>
+
+<div class="actions no-print">
+  <button class="btn btn--primary" id="print-btn">Print / Save as PDF</button>
+  <a class="btn btn--secondary" href="submit.html" id="market-btn">List on Marketplace</a>
+  <a class="btn btn--secondary" href="index.html">Done for Now</a>
+</div>
+
+<p class="muted no-print" style="margin-top:24px;font-size:14px;">
+  <strong>Optional next step:</strong> "List on Marketplace" lets MDCopia connect you with vetted buyers who agree, in writing, to begin negotiations within the range above. You retain full control and can withdraw at any time.
+</p>
+
+</div>
+</main>
+
+<footer class="footer no-print">
+  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a>
+</footer>
+
+<script type="module">
+import { flow, guard } from './js/flow.js';
+
+if (guard({ form: true, valuation: true, email: true, verified: true })) { /* redirected */ }
+
+const fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtInt = new Intl.NumberFormat('en-US');
+
+const f = flow.loadForm();
+const v = flow.loadValuation();
+
+if (f && v) {
+  document.getElementById('r-practice').textContent = f.practiceName || '—';
+  document.getElementById('r-specialty').textContent = f.specialty === 'Other' && f.specialtyOther ? f.specialtyOther : (f.specialty || '—');
+  document.getElementById('r-location').textContent = (f.city || '') + (f.state ? ', ' + f.state : '');
+  document.getElementById('r-revenue').textContent = fmtUSD.format(Number(f.revenue) || 0);
+  document.getElementById('r-visits').textContent = fmtInt.format(Number(f.visits) || 0);
+  document.getElementById('r-sites').textContent = String(f.sites || 1);
+  document.getElementById('r-realestate').textContent = f.realEstate || '—';
+  document.getElementById('r-timeline').textContent = f.timeline || '—';
+  document.getElementById('r-date').textContent = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  document.getElementById('r-range').textContent = fmtUSD.format(v.low) + ' – ' + fmtUSD.format(v.high);
+  document.getElementById('r-methodology').textContent = v.methodology || '';
+
+  const factorsEl = document.getElementById('r-factors');
+  for (const [k, val] of Object.entries(v.factors || {})) {
+    const dt = document.createElement('dt');
+    dt.style.color = 'var(--dark-grey)';
+    dt.style.fontWeight = '600';
+    dt.textContent = k.replace(/([A-Z])/g, ' $1').replace(/^./, m => m.toUpperCase());
+    const dd = document.createElement('dd');
+    dd.style.margin = '0';
+    dd.textContent = val;
+    factorsEl.appendChild(dt);
+    factorsEl.appendChild(dd);
+  }
+  document.getElementById('r-sources').textContent = (v.dataSources || []).join(' · ');
+}
+
+document.getElementById('print-btn').addEventListener('click', () => window.print());
+</script>
+
+</body>
+</html>

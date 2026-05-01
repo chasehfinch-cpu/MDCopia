@@ -60,7 +60,13 @@
 
 <script type="module">
 import { computeValuation, verifyDeterminism, verifyContinuity } from './engine.js';
-import { META } from './tables-static.js';
+
+// Specialty / state lists for the harness dropdowns. Kept here (not in
+// the engine) so the client only knows display values, not multipliers.
+const META = {
+  SPECIALTIES: ['Primary Care','Internal Medicine','Family Medicine','Pediatrics','OB/GYN','Cardiology','Orthopedics','Dermatology','Ophthalmology','Gastroenterology','Urology','Neurology','Psychiatry','Radiology','Anesthesiology','Emergency Medicine','General Surgery','Other'],
+  STATES: ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+};
 
 const out = document.getElementById('out');
 function log(msg) {
