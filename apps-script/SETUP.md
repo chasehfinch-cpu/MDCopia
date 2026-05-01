@@ -75,6 +75,89 @@ https://script.google.com/macros/s/AKfy.../exec?action=api_proxy&url=https%3A%2F
 
 Should return `{"success":true,"status":200,"data":{...}}`.
 
+## Stripe buyer infrastructure (one-time, ~10 minutes)
+
+The script ships with a complete Stripe pipeline: invoice creation, webhook receipt, refund handling, Lead Credits, and bulk orders. Activate it once and it runs hands-off.
+
+### 1. Create the Stripe account and configure
+
+Per the Stripe section in your engagement notes:
+1. Sign up at https://dashboard.stripe.com/register, complete business verification.
+2. Settings → Branding (logo + royal blue + gold).
+3. Settings → Invoice template, set default footer to: *"Payment of this invoice constitutes Buyer's binding acceptance of the MDCopia Buyer Agreement (www.mdcopia.com/buyer-agreement.html). Lead refund or non-expiring Lead Credit per §9 of the Buyer Agreement."*
+4. Settings → Payment methods → enable Cards (auto) + ACH Direct Debit.
+5. Products → create product `MDCopia Lead`, $1,000 USD, one-time. (Optional; the script also creates ad-hoc invoiceitems without a stored product.)
+
+### 2. Add Stripe secrets to Script Properties
+
+Apps Script editor → Project Settings → Script Properties:
+
+| Key | Value | Required |
+|---|---|---|
+| `STRIPE_API_KEY` | Restricted key with **Invoices: write** + **Customers: write** + **Customers: search**. Get from Stripe Dashboard → Developers → API keys → Create restricted key. | Yes |
+| `STRIPE_WEBHOOK_TOKEN` | A random ~32-char string you generate (e.g., `openssl rand -hex 16`). This is your shared secret for webhook auth. | Yes |
+
+### 3. Register the webhook URL in Stripe
+
+Stripe Dashboard → Developers → Webhooks → **Add endpoint**:
+
+- **Endpoint URL:**
+  ```
+  <YOUR_APPS_SCRIPT_URL>?action=stripe_webhook&token=<YOUR_STRIPE_WEBHOOK_TOKEN>
+  ```
+  Replace both placeholders with your actual values.
+- **Events to send:**
+  - `invoice.created`
+  - `invoice.paid`
+  - `invoice.payment_succeeded`
+  - `invoice.payment_failed`
+  - `charge.refunded`
+  - `customer.created`
+- Save. Stripe will send a test event; the dashboard should show `200 OK`.
+
+### 4. Bootstrap the Lead Credits tab
+
+Apps Script editor → function dropdown → `setupBuyerInfrastructure` → Run. Authorize if prompted. Switch to your Sheet — you should see a new `Lead Credits` tab with a frozen, gold-tinted header row.
+
+### 5. Verify
+
+In the Stripe dashboard, create a test invoice for a fake customer (use Stripe test mode if you want zero-risk testing). When you mark it paid, you should see:
+- A new row in the `Transactions` tab with `inv:in_xxx · amount:$1000.00 · lead`
+- An email to your partner addresses titled "MDCopia: Buyer invoice paid"
+
+### Sending a real invoice from the script
+
+Two admin functions are available in the editor for ad-hoc use:
+
+- `createBuyerInvoice('buyer@firm.com', 'L-20260501-XXXXXX-NNNN', 'Gulf Coast Family Medicine - Pensacola FL')` — single-lead invoice. Auto-emails the buyer with the hosted invoice link.
+- `createBulkInvoice('buyer@firm.com', ['L-...', 'L-...', 'L-...'], 1000, 15, 'TX Cardiology bundle')` — multi-lead invoice with optional volume discount (last two args: per-lead price USD, discount %).
+
+Both write the invoice ID into the `Notes` column of the `Transactions` tab. The webhook then auto-updates `Outcome` and `Close Price` when payment lands.
+
+### Lead Credits
+
+When a refund is processed in Stripe (Refunds → Issue refund), the `charge.refunded` webhook auto-creates a Lead Credit row. To issue a credit manually (e.g., as a goodwill gesture):
+
+```
+issueLeadCredit('buyer@firm.com', 1000, 'Goodwill credit per Buyer Agreement §9');
+```
+
+To check a buyer's balance before invoicing them again:
+
+```
+Logger.log(getBuyerCreditBalance('buyer@firm.com'));
+```
+
+To redeem credits against a new invoice (call after creating the invoice in Stripe; pass the invoice ID):
+
+```
+applyLeadCredit('buyer@firm.com', 1000, 'in_1AbC...');
+```
+
+### Note on Stripe-Signature header
+
+Apps Script's `doPost` cannot read HTTP request headers, so the canonical Stripe-Signature HMAC verification isn't available. We use a shared-secret query token instead. This is secure as long as `STRIPE_WEBHOOK_TOKEN` stays in Script Properties (never committed). For higher assurance, place a Cloudflare Worker between Stripe and the Apps Script endpoint that performs the canonical verification and forwards the verified payload — about a 30-minute build when warranted.
+
 ## Updating the deployment
 
 When you change `Code.gs`:

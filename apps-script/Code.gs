@@ -22,7 +22,8 @@ var TAB = {
   SELLER:   'Seller Leads',
   BUYER:    'Buyer Inquiries',
   TXN:      'Transactions',
-  DRAFTS:   'Buyer Email Drafts'
+  DRAFTS:   'Buyer Email Drafts',
+  CREDITS:  'Lead Credits'
 };
 
 var HEADERS = {
@@ -48,6 +49,10 @@ var HEADERS = {
     'Buyer Email','Buyer Name','Buyer Org','Seller Practice Name','Seller State',
     'Seller City','Seller Specialty','Valuation Low','Valuation High',
     'Email Subject','Email Body','Sent','Sent Date'
+  ],
+  'Lead Credits': [
+    'Buyer Email','Credit Amount USD','Issued Date','Reason','Source Invoice',
+    'Applied Date','Applied To Invoice','Remaining Balance','Status'
   ]
 };
 
@@ -70,10 +75,23 @@ function doPost(e) {
       seller_consent:    handleSellerConsent,
       engine_error:      handleEngineError,
       api_proxy:         handleApiProxy,
-      compute_valuation: handleComputeValuation
+      compute_valuation: handleComputeValuation,
+      stripe_webhook:    handleStripeWebhook
     };
     var fn = routes[action];
     if (!fn) return jsonResponse({ success: false, error: 'Unknown action: ' + action });
+
+    // Stripe webhook auth: shared-secret token in URL query (Apps Script
+    // can't read HTTP headers, so we can't do canonical Stripe-Signature
+    // HMAC verification — token is in Script Properties only).
+    if (action === 'stripe_webhook') {
+      var expected = PropertiesService.getScriptProperties().getProperty('STRIPE_WEBHOOK_TOKEN');
+      var provided = (e && e.parameter && e.parameter.token) || '';
+      if (!expected || provided !== expected) {
+        return jsonResponse({ success: false, error: 'invalid token' });
+      }
+    }
+
     return jsonResponse(fn(payload));
   } catch (err) {
     return jsonResponse({ success: false, error: String(err && err.message || err) });
@@ -1096,6 +1114,387 @@ function handleSellerConsent(p) {
     'Status': 'Consented and In Marketplace'
   });
   return { success: true };
+}
+
+// ============================================================
+// STRIPE — buyer invoicing + webhook receiver + Lead Credits
+// ============================================================
+//
+// Webhook URL to register in Stripe Dashboard → Developers → Webhooks:
+//   <APPS_SCRIPT_URL>?action=stripe_webhook&token=<STRIPE_WEBHOOK_TOKEN>
+//
+// Apps Script doPost cannot read HTTP headers, so the canonical Stripe
+// HMAC-SHA256 signature header verification is unavailable. We use a
+// shared-secret query token instead. The token lives in Script Properties
+// (STRIPE_WEBHOOK_TOKEN) and never appears in the repo. For higher
+// assurance later, place a Cloudflare Worker between Stripe and this
+// endpoint that does the canonical Stripe-Signature verification and
+// forwards the verified payload.
+//
+// Subscribe these events in Stripe → Webhooks → Add endpoint:
+//   invoice.created · invoice.paid · invoice.payment_failed
+//   charge.refunded · customer.created
+//
+// Embed metadata when you create an invoice from this script (or set it
+// on the Stripe dashboard line item):
+//   metadata.seller_lead_id = "L-..."        (mirror of Sheet Lead ID)
+//   metadata.mdcopia_purpose = "lead"        ("lead" | "bulk" | "credit_redemption")
+
+function handleStripeWebhook(p) {
+  // Token check happens in the dispatcher via e.parameter; here p is the
+  // parsed event body.
+  var event = p && p.event ? p.event : p;
+  if (!event || !event.type) return { success: false, error: 'no event type' };
+  try {
+    switch (event.type) {
+      case 'invoice.created':         return stripeOnInvoiceCreated(event.data && event.data.object);
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': return stripeOnInvoicePaid(event.data && event.data.object);
+      case 'invoice.payment_failed':  return stripeOnInvoiceFailed(event.data && event.data.object);
+      case 'charge.refunded':         return stripeOnChargeRefunded(event.data && event.data.object);
+      case 'customer.created':        return stripeOnCustomerCreated(event.data && event.data.object);
+      default:                        return { success: true, ignored: event.type };
+    }
+  } catch (err) {
+    Logger.log('stripe webhook error: ' + err);
+    return { success: false, error: String(err && err.message || err) };
+  }
+}
+
+function stripeFindTxnRowByInvoice(invoiceId) {
+  var sheet = txnSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return null;
+  var headers = data[0];
+  var notesCol = headers.indexOf('Notes');
+  for (var i = 1; i < data.length; i++) {
+    if (notesCol >= 0 && String(data[i][notesCol] || '').indexOf('inv:' + invoiceId) >= 0) {
+      var values = {};
+      for (var j = 0; j < headers.length; j++) values[headers[j]] = data[i][j];
+      return { row: i + 1, values: values };
+    }
+  }
+  return null;
+}
+
+function stripeOnInvoiceCreated(invoice) {
+  if (!invoice) return { success: false, error: 'no invoice' };
+  if (stripeFindTxnRowByInvoice(invoice.id)) return { success: true, deduped: true };
+  var sheet = txnSheet();
+  var leadId = (invoice.metadata && invoice.metadata.seller_lead_id) || '';
+  sheet.appendRow([
+    leadId,                                          // Lead ID
+    invoice.customer || invoice.customer_email || '',// Buyer ID (Stripe customer)
+    new Date(),                                      // Date Matched
+    '',                                              // Valuation Range Low
+    '',                                              // Valuation Range High
+    false,                                           // Negotiation Started
+    '',                                              // 12-Month Follow-Up Date
+    'Invoiced',                                      // Outcome
+    '',                                              // Close Price
+    'inv:' + invoice.id + ' · amount:$' + ((invoice.amount_due || 0) / 100).toFixed(2) +
+      ' · ' + ((invoice.metadata && invoice.metadata.mdcopia_purpose) || 'lead')
+  ]);
+  return { success: true, action: 'transaction_logged' };
+}
+
+function stripeOnInvoicePaid(invoice) {
+  if (!invoice) return { success: false, error: 'no invoice' };
+  var sheet = txnSheet();
+  var info = stripeFindTxnRowByInvoice(invoice.id);
+  var headers = HEADERS[TAB.TXN];
+  var amountPaid = (invoice.amount_paid || invoice.amount_due || 0) / 100;
+  if (info) {
+    var outcomeCol = headers.indexOf('Outcome') + 1;
+    var closeCol   = headers.indexOf('Close Price') + 1;
+    sheet.getRange(info.row, outcomeCol).setValue('Paid');
+    sheet.getRange(info.row, closeCol).setValue(amountPaid);
+  } else {
+    sheet.appendRow([
+      (invoice.metadata && invoice.metadata.seller_lead_id) || '',
+      invoice.customer || invoice.customer_email || '',
+      new Date(),'','','','','Paid', amountPaid,
+      'inv:' + invoice.id + ' · paid out-of-band'
+    ]);
+  }
+  notifyPartners({
+    subject: 'MDCopia: Buyer invoice paid - ' + (invoice.customer_email || invoice.customer || 'unknown'),
+    html:
+      '<p>Invoice <strong>' + esc(invoice.id) + '</strong> marked PAID.</p>' +
+      '<p>Buyer: ' + esc(invoice.customer_email || invoice.customer || '') + '<br>' +
+      'Amount: $' + amountPaid.toFixed(2) + '<br>' +
+      'Lead ID: ' + esc((invoice.metadata && invoice.metadata.seller_lead_id) || 'N/A') + '<br>' +
+      'Purpose: ' + esc((invoice.metadata && invoice.metadata.mdcopia_purpose) || 'lead') + '</p>' +
+      '<p>Action: release Practice Information to the buyer per the corresponding Seller Leads row.</p>'
+  });
+  return { success: true, action: 'paid_logged' };
+}
+
+function stripeOnInvoiceFailed(invoice) {
+  notifyPartners({
+    subject: 'MDCopia: Buyer invoice payment FAILED',
+    html:
+      '<p>Invoice <strong>' + esc(invoice.id) + '</strong> payment failed.</p>' +
+      '<p>Buyer: ' + esc(invoice.customer_email || invoice.customer || '') + '<br>' +
+      'Amount: $' + ((invoice.amount_due || 0) / 100).toFixed(2) + '</p>'
+  });
+  return { success: true, action: 'failure_notified' };
+}
+
+function stripeOnChargeRefunded(charge) {
+  if (!charge) return { success: false, error: 'no charge' };
+  var sheet = txnSheet();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var notesCol = headers.indexOf('Notes');
+  var outcomeCol = headers.indexOf('Outcome') + 1;
+  var refundedRow = null;
+  for (var i = 1; i < data.length; i++) {
+    if (notesCol >= 0 && String(data[i][notesCol] || '').indexOf('inv:' + charge.invoice) >= 0) {
+      sheet.getRange(i + 1, outcomeCol).setValue('Refunded');
+      refundedRow = i + 1;
+      break;
+    }
+  }
+  // Auto-issue a Lead Credit equal to the refunded amount, per Buyer Agreement §9.
+  var refundAmt = (charge.amount_refunded || charge.amount || 0) / 100;
+  var buyerEmail = charge.billing_details && charge.billing_details.email;
+  if (buyerEmail && refundAmt > 0) {
+    issueLeadCredit(buyerEmail, refundAmt, 'Auto-issued on charge refund', charge.invoice || charge.id);
+  }
+  notifyPartners({
+    subject: 'MDCopia: Refund issued - Lead Credit recorded',
+    html:
+      '<p>Charge <strong>' + esc(charge.id) + '</strong> refunded $' + refundAmt.toFixed(2) + '.</p>' +
+      '<p>Buyer: ' + esc(buyerEmail || 'unknown') + '<br>' +
+      'Auto-issued Lead Credit equal to refund per Buyer Agreement §9.</p>'
+  });
+  return { success: true, action: 'refund_logged_credit_issued' };
+}
+
+function stripeOnCustomerCreated(customer) {
+  // Append to Buyer Inquiries so we have a record of every buyer Stripe
+  // creates (whether through our admin invoice or via Stripe's UI).
+  var sheet = book().getSheetByName(TAB.BUYER);
+  if (!sheet) return { success: true, ignored: 'no buyer inquiries tab' };
+  sheet.appendRow([
+    new Date(), customer.name || '', customer.name || '', customer.email || '', customer.phone || '',
+    '', '', '', '', 'Stripe customer auto-created', 'New', false, '', false
+  ]);
+  return { success: true, action: 'buyer_logged' };
+}
+
+// ---------- Lead Credits ----------
+
+function leadCreditsSheet() {
+  var s = book().getSheetByName(TAB.CREDITS);
+  if (!s) throw new Error('Tab "' + TAB.CREDITS + '" missing. Run setupBuyerInfrastructure() once.');
+  return s;
+}
+
+function issueLeadCredit(buyerEmail, amount, reason, sourceInvoice) {
+  var sheet = leadCreditsSheet();
+  var balance = getBuyerCreditBalance(buyerEmail) + amount;
+  sheet.appendRow([
+    String(buyerEmail).toLowerCase(),
+    Number(amount),
+    new Date(),
+    reason || 'Manually issued',
+    sourceInvoice || '',
+    '', '',
+    balance,
+    'Active'
+  ]);
+  Logger.log('Issued $' + amount + ' Lead Credit to ' + buyerEmail + ' (new balance: $' + balance + ')');
+  return { success: true, balance: balance };
+}
+
+function getBuyerCreditBalance(buyerEmail) {
+  var sheet = leadCreditsSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return 0;
+  var headers = data[0];
+  var emailCol  = headers.indexOf('Buyer Email');
+  var amtCol    = headers.indexOf('Credit Amount USD');
+  var statusCol = headers.indexOf('Status');
+  var appliedCol= headers.indexOf('Applied To Invoice');
+  var target = String(buyerEmail).toLowerCase();
+  var bal = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][emailCol] || '').toLowerCase() !== target) continue;
+    var status = String(data[i][statusCol] || '').toLowerCase();
+    if (status === 'redeemed' || status === 'expired' || data[i][appliedCol]) continue;
+    bal += Number(data[i][amtCol]) || 0;
+  }
+  return bal;
+}
+
+function applyLeadCredit(buyerEmail, amount, invoiceId) {
+  var sheet = leadCreditsSheet();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var emailCol      = headers.indexOf('Buyer Email');
+  var amtCol        = headers.indexOf('Credit Amount USD');
+  var appliedDateCol= headers.indexOf('Applied Date');
+  var appliedToCol  = headers.indexOf('Applied To Invoice');
+  var statusCol     = headers.indexOf('Status');
+  var target = String(buyerEmail).toLowerCase();
+  var remaining = amount;
+  for (var i = 1; i < data.length && remaining > 0; i++) {
+    if (String(data[i][emailCol] || '').toLowerCase() !== target) continue;
+    if (data[i][appliedToCol]) continue; // already used
+    var credit = Number(data[i][amtCol]) || 0;
+    if (credit <= 0) continue;
+    if (credit <= remaining) {
+      sheet.getRange(i + 1, appliedDateCol + 1).setValue(new Date());
+      sheet.getRange(i + 1, appliedToCol + 1).setValue(invoiceId);
+      sheet.getRange(i + 1, statusCol + 1).setValue('Redeemed');
+      remaining -= credit;
+    } else {
+      // Partial: mark this row redeemed for `remaining`, write a remainder row
+      sheet.getRange(i + 1, amtCol + 1).setValue(remaining);
+      sheet.getRange(i + 1, appliedDateCol + 1).setValue(new Date());
+      sheet.getRange(i + 1, appliedToCol + 1).setValue(invoiceId);
+      sheet.getRange(i + 1, statusCol + 1).setValue('Redeemed');
+      sheet.appendRow([
+        target, credit - remaining, new Date(),
+        'Remainder of partial redemption', '', '', '',
+        getBuyerCreditBalance(target) + (credit - remaining),
+        'Active'
+      ]);
+      remaining = 0;
+    }
+  }
+  return { success: true, applied: amount - remaining, unapplied: remaining };
+}
+
+// ---------- Stripe API: createBuyerInvoice + createBulkInvoice ----------
+
+function stripeApiCall(endpoint, payload) {
+  var key = PropertiesService.getScriptProperties().getProperty('STRIPE_API_KEY');
+  if (!key) throw new Error('STRIPE_API_KEY not set in Script Properties');
+  var formBody = stripeEncodeForm(payload);
+  var res = UrlFetchApp.fetch('https://api.stripe.com/v1/' + endpoint, {
+    method: 'post',
+    contentType: 'application/x-www-form-urlencoded',
+    headers: { Authorization: 'Bearer ' + key },
+    payload: formBody,
+    muteHttpExceptions: true
+  });
+  var code = res.getResponseCode();
+  var body = JSON.parse(res.getContentText());
+  if (code < 200 || code >= 300) throw new Error('Stripe API ' + code + ': ' + (body.error && body.error.message));
+  return body;
+}
+
+// Stripe wants nested fields as bracketed keys (metadata[seller_lead_id])
+function stripeEncodeForm(obj, prefix) {
+  var parts = [];
+  for (var k in obj) {
+    if (!obj.hasOwnProperty(k)) continue;
+    var v = obj[k];
+    var key = prefix ? prefix + '[' + k + ']' : k;
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      parts.push(stripeEncodeForm(v, key));
+    } else if (Array.isArray(v)) {
+      for (var i = 0; i < v.length; i++) {
+        parts.push(stripeEncodeForm(v[i], key + '[' + i + ']'));
+      }
+    } else if (v != null) {
+      parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(v));
+    }
+  }
+  return parts.join('&');
+}
+
+function findOrCreateStripeCustomer(email, name) {
+  var search = stripeApiCall('customers/search?query=' + encodeURIComponent('email:"' + email + '"'), {});
+  if (search.data && search.data.length > 0) return search.data[0];
+  return stripeApiCall('customers', { email: email, name: name || email });
+}
+
+// Admin: create a single-lead invoice for one buyer and one seller lead.
+// Returns the hosted invoice URL. Send it to the buyer manually or via
+// Stripe's auto-email by passing autoSend=true (default).
+function createBuyerInvoice(buyerEmail, sellerLeadId, practiceLabel, autoSend) {
+  if (autoSend === undefined) autoSend = true;
+  var customer = findOrCreateStripeCustomer(buyerEmail, '');
+  var price = 100000; // $1,000 in cents - default per-lead fee. Override in code if needed.
+  stripeApiCall('invoiceitems', {
+    customer: customer.id,
+    amount: price,
+    currency: 'usd',
+    description: 'MDCopia Lead: ' + (practiceLabel || sellerLeadId),
+    metadata: { seller_lead_id: sellerLeadId, mdcopia_purpose: 'lead' }
+  });
+  var invoice = stripeApiCall('invoices', {
+    customer: customer.id,
+    collection_method: 'send_invoice',
+    days_until_due: 7,
+    description: 'Lead delivery contingent on full payment. Payment of this invoice constitutes acceptance of the MDCopia Buyer Agreement (www.mdcopia.com/buyer-agreement.html).',
+    metadata: { seller_lead_id: sellerLeadId, mdcopia_purpose: 'lead' }
+  });
+  if (autoSend) {
+    stripeApiCall('invoices/' + invoice.id + '/send', {});
+  }
+  Logger.log('Invoice created: ' + invoice.id + ' for ' + buyerEmail + ' / ' + sellerLeadId);
+  Logger.log('Hosted URL: ' + invoice.hosted_invoice_url);
+  return invoice;
+}
+
+// Admin: create a bulk-order invoice. leadIds is an array of seller_lead_id
+// strings; discountPct (0-100) applies a flat discount line. Useful for
+// specialty/geo bundles like "10 Cardiology leads in Texas at 15% off."
+function createBulkInvoice(buyerEmail, leadIds, pricePerLead, discountPct, label) {
+  if (!Array.isArray(leadIds) || leadIds.length === 0) throw new Error('leadIds required');
+  pricePerLead = (pricePerLead || 1000) * 100; // cents
+  discountPct = discountPct || 0;
+  var customer = findOrCreateStripeCustomer(buyerEmail, '');
+  for (var i = 0; i < leadIds.length; i++) {
+    stripeApiCall('invoiceitems', {
+      customer: customer.id,
+      amount: pricePerLead,
+      currency: 'usd',
+      description: 'MDCopia Lead: ' + leadIds[i],
+      metadata: { seller_lead_id: leadIds[i], mdcopia_purpose: 'bulk' }
+    });
+  }
+  if (discountPct > 0) {
+    stripeApiCall('invoiceitems', {
+      customer: customer.id,
+      amount: -Math.round(pricePerLead * leadIds.length * (discountPct / 100)),
+      currency: 'usd',
+      description: 'Bulk discount (' + discountPct + '%) - ' + (label || (leadIds.length + ' leads'))
+    });
+  }
+  var invoice = stripeApiCall('invoices', {
+    customer: customer.id,
+    collection_method: 'send_invoice',
+    days_until_due: 7,
+    description: 'Bulk order: ' + leadIds.length + ' Leads. Payment constitutes acceptance of the MDCopia Buyer Agreement (www.mdcopia.com/buyer-agreement.html).',
+    metadata: { seller_lead_id: leadIds.join(','), mdcopia_purpose: 'bulk', lead_count: String(leadIds.length) }
+  });
+  stripeApiCall('invoices/' + invoice.id + '/send', {});
+  Logger.log('Bulk invoice created: ' + invoice.id + ' for ' + buyerEmail);
+  Logger.log('Hosted URL: ' + invoice.hosted_invoice_url);
+  return invoice;
+}
+
+// One-shot admin: create the Lead Credits tab (run once, after setupSheets).
+function setupBuyerInfrastructure() {
+  var ss = book();
+  var sheet = ss.getSheetByName(TAB.CREDITS);
+  if (!sheet) sheet = ss.insertSheet(TAB.CREDITS);
+  var headers = HEADERS[TAB.CREDITS];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold').setBackground('#FBF6EA');
+  sheet.setFrozenRows(1);
+  Logger.log('Lead Credits tab ready. Webhook events will populate Transactions tab automatically.');
+}
+
+function txnSheet() {
+  var s = book().getSheetByName(TAB.TXN);
+  if (!s) throw new Error('Tab "' + TAB.TXN + '" missing.');
+  return s;
 }
 
 function handleEngineError(p) {
