@@ -210,7 +210,7 @@
   <p class="muted" style="font-size:14px;margin:0 0 14px;">Three pages. Use the <strong>Print</strong> button to save as PDF or print a hard copy.</p>
   <button class="btn btn--primary" id="print-btn">Print / Save as PDF</button>
   &nbsp;
-  <a class="btn btn--secondary" href="index.html">Done</a>
+  <a class="btn btn--secondary" href="index.html" id="done-btn">Done</a>
 </div>
 
 <div class="report-shell">
@@ -409,7 +409,7 @@
 </main>
 
 <footer class="footer no-print">
-  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Submission</a>
+  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Submission</a> · <a href="buyer-agreement.html">Buyer Agreement</a>
 </footer>
 
 <script type="module">
@@ -493,6 +493,13 @@ if (f && v) {
 }
 
 document.getElementById('print-btn').addEventListener('click', () => window.print());
+
+// Clear all session-scoped form/valuation data when the seller is done.
+// Protects shared computers (kiosks, family desktops) from leaking the prior
+// seller's information to the next person who opens the browser tab.
+document.getElementById('done-btn').addEventListener('click', () => {
+  flow.clear();
+});
 </script>
 
 </body>
