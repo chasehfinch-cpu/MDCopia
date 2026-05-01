@@ -52,8 +52,8 @@
   --font-mono:    "Courier Prime", "Courier New", monospace;
 
   /* Sizes */
-  --max-content: 880px;
-  --section-pad-y: 56px;
+  --max-content: 1080px;
+  --section-pad-y: 88px;
   --tap-min: 44px;
   --input-h: 44px;
   --radius: 4px;
@@ -554,9 +554,64 @@ main { padding-top: 80px; /* clears fixed nav */ }
   margin: 0;
   letter-spacing: -1px;
   line-height: 1;
+  position: relative;
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+}
+/* Animations only start once the gate is cleared (body becomes visible) */
+body.gate-disabled .hero__brand {
+  animation: brand-wipe 1100ms cubic-bezier(0.22, 0.61, 0.36, 1) 120ms forwards;
 }
 .hero__brand .md { color: var(--royal-blue); }
-.hero__brand .copia { color: var(--gold); font-style: italic; }
+.hero__brand .copia {
+  color: var(--gold);
+  font-style: italic;
+  background: linear-gradient(120deg, var(--gold) 0%, var(--gold) 38%, #F0D886 50%, var(--gold) 62%, var(--gold) 100%);
+  background-size: 220% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background-position 1400ms ease;
+}
+.hero__brand:hover .copia { background-position: 0% 50%; }
+
+@keyframes brand-wipe {
+  from { clip-path: inset(0% 100% 0% 0%); }
+  to   { clip-path: inset(0% 0%   0% 0%); }
+}
+
+/* Hero supporting elements: hidden until gate clears, then stagger-fade in */
+.hero__rule, .hero__sub, .hero-section .steps-grid .card, .hero-section .hero-cta {
+  opacity: 0;
+  transform: translateY(8px);
+}
+body.gate-disabled .hero__rule          { animation: hero-fade-in 600ms ease  980ms forwards; }
+body.gate-disabled .hero__sub           { animation: hero-fade-in 600ms ease 1180ms forwards; }
+body.gate-disabled .hero-section .steps-grid .card:nth-child(1) { animation: hero-fade-in 600ms ease 1380ms forwards; }
+body.gate-disabled .hero-section .steps-grid .card:nth-child(2) { animation: hero-fade-in 600ms ease 1480ms forwards; }
+body.gate-disabled .hero-section .steps-grid .card:nth-child(3) { animation: hero-fade-in 600ms ease 1580ms forwards; }
+body.gate-disabled .hero-section .hero-cta { animation: hero-fade-in 600ms ease 1820ms forwards; }
+
+@keyframes hero-fade-in {
+  to { opacity: 1; transform: none; }
+}
+
+/* Reduced motion: render everything immediately, skip the choreography */
+@media (prefers-reduced-motion: reduce) {
+  .hero__brand,
+  .hero__rule,
+  .hero__sub,
+  .hero-section .steps-grid,
+  .hero-section .steps-grid .card,
+  .hero-section .hero-cta {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .hero__brand .copia { background-position: 0 50%; }
+}
 .hero__rule {
   width: 60%;
   max-width: 360px;
@@ -568,22 +623,40 @@ main { padding-top: 80px; /* clears fixed nav */ }
 .hero__sub {
   font-size: var(--fs-lead);
   color: var(--mid-grey);
-  max-width: 540px;
-  margin: 0 auto 32px;
+  max-width: 580px;
+  margin: 0 auto 96px;
   line-height: 1.5;
 }
 .hero-section {
   padding-top: 0;
+  padding-bottom: 96px;
 }
-.hero-section .steps-grid { max-width: 800px; margin: 0 auto 36px; }
+.hero-section .steps-grid { max-width: 940px; margin: 0 auto 56px; }
 .hero-section .hero-cta { text-align: center; }
+.hero-section .hero-cta .btn { padding: 14px 40px; font-size: 17px; }
+
+/* Anchor sections shouldn't tuck under the fixed nav on jump */
+section[id], .section[id] { scroll-margin-top: 96px; }
 
 /* Promise band */
 .promise {
   background: var(--royal-blue);
   color: var(--white);
-  padding: 44px 24px;
+  padding: 56px 24px;
   text-align: center;
+  position: relative;
+}
+/* Soft gradient lead-in above the royal-blue band so sections fade
+   into each other instead of slamming together. */
+.promise::before {
+  content: '';
+  position: absolute;
+  top: -64px;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, var(--royal-blue) 100%);
+  pointer-events: none;
 }
 .promise p {
   font-size: var(--fs-body);
@@ -697,6 +770,27 @@ main { padding-top: 80px; /* clears fixed nav */ }
   font-size: 14px;
   text-align: center;
   min-height: 1em;
+}
+
+/* ---------- 11a. Scroll reveal (annotated with class="reveal") ---------- */
+
+body.gate-disabled .reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 600ms cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+body.gate-disabled .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.gate-disabled .reveal,
+  body.gate-disabled .reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* ---------- 11. Utilities ---------- */
