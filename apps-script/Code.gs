@@ -350,7 +350,7 @@ function loadEngineTablesFromSheet() {
       live[spec.target] = parseTableRows(spec, rows);
     }
     // Augmented derived tables (kept compiled-in so founders don't have to maintain ranges twice)
-    live.SPECIALTY_CPV_RANGE = deriveSpecialtyCpvRangeFrom(live.SPECIALTY_BASE_CPV_RAW || ENGINE_TABLES.SPECIALTY_CPV_RANGE);
+    live.SPECIALTY_CPV_RANGE = deriveSpecialtyCpvRangeFrom(live.SPECIALTY_BASE_CPV);
     live.BLS_COMPENSATION = ENGINE_TABLES.BLS_COMPENSATION;
     return live;
   } catch (err) {
