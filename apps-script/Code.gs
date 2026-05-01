@@ -558,12 +558,12 @@ function handleComputeValuation(p) {
       'AMA Physician Practice Benchmark Survey',
       'KFF State Health Facts',
       'U.S. Census Bureau American Community Survey',
-      'FOCUS Investment Banking — Physician Practice M&A reports',
-      'Scope Research — specialty-level transaction analyses',
-      'First Page Sage — Healthcare EBITDA & Valuation Multiples',
-      'Levin Associates — deal volume data',
-      'HealthValue Group — transaction trend analyses',
-      'SovDoc — specialty-level multiple analyses'
+      'FOCUS Investment Banking: Physician Practice M&A reports',
+      'Scope Research: specialty-level transaction analyses',
+      'First Page Sage: Healthcare EBITDA & Valuation Multiples',
+      'Levin Associates: deal volume data',
+      'HealthValue Group: transaction trend analyses',
+      'SovDoc: specialty-level multiple analyses'
     ];
     if (npi) dataSources.push('NPPES NPI Registry (HHS / CMS)');
     if (cms) dataSources.push('CMS Medicare Physician & Other Practitioners');
@@ -936,9 +936,21 @@ function jsonResponse(obj) {
 
 // ---------- Route handlers ----------
 
+var SELLER_SUBMISSION_CAP = 3;
+
 function handleSellerSubmit(p) {
   if (!p.email) return { success: false, error: 'email required' };
   var sheet = sellerSheet();
+
+  // Cap: at most SELLER_SUBMISSION_CAP submissions per email address.
+  var existing = countSellerRowsByEmail(p.email);
+  if (existing >= SELLER_SUBMISSION_CAP) {
+    return {
+      success: false,
+      error: 'Multiple seller submissions under same email. Contact sales@mdcopia.com to reset.'
+    };
+  }
+
   var leadId = newLeadId();
   var ts = new Date();
   var npiType = (p.npi && String(p.npi).length === 10) ? 'unknown' : '';
@@ -947,7 +959,10 @@ function handleSellerSubmit(p) {
     npiType = enrichment.providerCount > 1 ? '2' : '1';
   }
 
-  var consented = !!p.consentAcknowledged;
+  // Consent intent is captured at submit (the inline checkbox), but Consent
+  // Given does not flip TRUE until the user has verified their email. The
+  // checkbox is recorded as Consent Acknowledged in the row's Status field.
+  var consentAck = !!p.consentAcknowledged;
   var row = headerOrderedRow(TAB.SELLER, {
     'Timestamp': ts,
     'Lead ID': leadId,
@@ -963,10 +978,10 @@ function handleSellerSubmit(p) {
     'Real Estate': p.realEstate || '',
     'Timeline': p.timeline || '',
     'Email': p.email,
-    'Status': consented ? 'Consented — In Marketplace' : 'New',
+    'Status': consentAck ? 'Consent Acknowledged - Pending Verification' : 'New',
     'Email Verified': false,
-    'Consent Given': consented,
-    'Consent Date': consented ? ts : '',
+    'Consent Given': false,
+    'Consent Date': '',
     'Code Attempts': 0,
     'Valuation Range Low': Number(p.valuationLow) || 0,
     'Valuation Range High': Number(p.valuationHigh) || 0,
@@ -991,7 +1006,7 @@ function handleSellerSubmit(p) {
       '<p><strong>Lead ID:</strong> ' + leadId + '</p>' +
       '<p><strong>Specialty:</strong> ' + esc(p.specialty || '') + '<br>' +
       '<strong>Revenue:</strong> ' + fmt(p.revenue || 0) + '<br>' +
-      '<strong>Range:</strong> ' + fmt(p.valuationLow) + ' – ' + fmt(p.valuationHigh) + '</p>' +
+      '<strong>Range:</strong> ' + fmt(p.valuationLow) + ' to ' + fmt(p.valuationHigh) + '</p>' +
       '<p><strong>Email:</strong> ' + esc(p.email) + '</p>' +
       '<pre>' + esc(JSON.stringify(p, null, 2)) + '</pre>'
   });
@@ -1048,12 +1063,23 @@ function handleVerifyCode(p) {
     return { success: true, verified: false, reason: 'Invalid code. Please try again.' };
   }
 
-  setSellerCells(rowInfo.row, {
+  // Email verification ALSO finalizes consent. The seller acknowledged
+  // the Terms inline at submit; verifying their email proves the address
+  // is theirs, which is the moment we treat consent as binding.
+  var consentWasAcked = String(rowInfo.values['Status'] || '').indexOf('Consent Acknowledged') >= 0;
+  var updates = {
     'Email Verified': true,
     'Verification Code': '',
-    'Code Expiry': '',
-    'Status': 'Email Verified'
-  });
+    'Code Expiry': ''
+  };
+  if (consentWasAcked) {
+    updates['Consent Given'] = true;
+    updates['Consent Date']  = new Date();
+    updates['Status']        = 'Consented and Verified - In Marketplace';
+  } else {
+    updates['Status'] = 'Email Verified';
+  }
+  setSellerCells(rowInfo.row, updates);
   return { success: true, verified: true };
 }
 
@@ -1067,7 +1093,7 @@ function handleSellerConsent(p) {
   setSellerCells(rowInfo.row, {
     'Consent Given': true,
     'Consent Date': new Date(),
-    'Status': 'Consented — In Marketplace'
+    'Status': 'Consented and In Marketplace'
   });
   return { success: true };
 }
@@ -1100,6 +1126,20 @@ function sellerSheet() {
   var s = book().getSheetByName(TAB.SELLER);
   if (!s) throw new Error('Tab "' + TAB.SELLER + '" missing. Run setupSheets() once.');
   return s;
+}
+
+function countSellerRowsByEmail(email) {
+  var sheet = sellerSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return 0;
+  var emailCol = data[0].indexOf('Email');
+  if (emailCol < 0) return 0;
+  var target = String(email).trim().toLowerCase();
+  var n = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][emailCol]).trim().toLowerCase() === target) n++;
+  }
+  return n;
 }
 
 function findSellerRowByEmail(email) {

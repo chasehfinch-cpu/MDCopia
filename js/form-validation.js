@@ -103,7 +103,7 @@ export function normalizeEmail(s) {
 // Wire up on-blur normalization for a form. Pass element references.
 export function attachCasingNormalizers(form) {
   if (!form) return;
-  const titleCaseFields = ['practiceName', 'city', 'specialtyOther'];
+  const titleCaseFields = ['practiceName', 'cityOther', 'specialtyOther'];
   for (const name of titleCaseFields) {
     const el = form.querySelector('[name="' + name + '"]');
     if (!el) continue;
