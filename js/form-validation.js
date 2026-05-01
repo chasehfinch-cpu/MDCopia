@@ -81,3 +81,36 @@ export function formatIntegerOnBlur(input) {
 export function isValidEmail(s) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
 }
+
+// Normalize a user-typed string to Title Case ("gulf COAST family medicine"
+// → "Gulf Coast Family Medicine"). Preserves apostrophes (St. Mary's) and
+// capitalizes after spaces and hyphens. Leaves common all-caps acronyms
+// like "USA" alone if the user typed them deliberately.
+export function titleCase(s) {
+  if (s == null) return '';
+  return String(s)
+    .toLowerCase()
+    .replace(/(^|[\s\-/])(\w)/g, function (_, sep, ch) { return sep + ch.toUpperCase(); })
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Lowercase + trim for emails.
+export function normalizeEmail(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
+// Wire up on-blur normalization for a form. Pass element references.
+export function attachCasingNormalizers(form) {
+  if (!form) return;
+  const titleCaseFields = ['practiceName', 'city', 'specialtyOther'];
+  for (const name of titleCaseFields) {
+    const el = form.querySelector('[name="' + name + '"]');
+    if (!el) continue;
+    el.addEventListener('blur', () => {
+      const v = el.value;
+      if (!v) return;
+      el.value = titleCase(v);
+    });
+  }
+}

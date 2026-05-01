@@ -131,6 +131,7 @@
       <option>Own (included in sale)</option>
       <option>Own (not included)</option>
       <option>Lease</option>
+      <option>N/A</option>
     </select>
     <div class="field__helper" data-helper="realEstate"></div>
   </div>
@@ -213,7 +214,8 @@ import { submitSellerLead, notifyEngineError } from './js/form-submit.js';
 import {
   validateValuationForm, fieldHelpers,
   formatCurrencyOnBlur, formatIntegerOnBlur,
-  parseRevenue, parseVisits, isValidEmail
+  parseRevenue, parseVisits, isValidEmail,
+  attachCasingNormalizers, normalizeEmail
 } from './js/form-validation.js';
 
 const form = document.getElementById('valuation-form');
@@ -255,6 +257,11 @@ const visInput = document.getElementById('f-visits');
 revInput.addEventListener('blur', () => formatCurrencyOnBlur(revInput));
 visInput.addEventListener('blur', () => formatIntegerOnBlur(visInput));
 
+// Auto-normalize casing on text fields so the eventual PDF reads cleanly
+// regardless of how the user types ("GULF COAST FAMILY MEDICINE" → "Gulf Coast Family Medicine").
+attachCasingNormalizers(form);
+emailEl.addEventListener('blur', () => { emailEl.value = normalizeEmail(emailEl.value); });
+
 // Inline helpers on blur
 form.addEventListener('blur', updateHelpers, true);
 
@@ -284,7 +291,7 @@ consentCb.addEventListener('change', () => {
 
 proceedBtn.addEventListener('click', async () => {
   const data = readForm();
-  data.email = emailEl.value.trim();
+  data.email = normalizeEmail(emailEl.value);
   if (!isValidEmail(data.email)) {
     showHelper('email', 'Please enter a valid email address.', true);
     emailEl.focus();

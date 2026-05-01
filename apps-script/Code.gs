@@ -172,7 +172,7 @@ var ENGINE_TABLES = (function () {
   ];
 
   var REAL_ESTATE_FACTOR = {
-    'Own (included in sale)':1.15,'Own (not included)':1.00,'Lease':0.97,_default:1.00
+    'Own (included in sale)':1.15,'Own (not included)':1.00,'Lease':0.97,'N/A':1.00,_default:1.00
   };
 
   var TIMELINE_FACTOR = {
