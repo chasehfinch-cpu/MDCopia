@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Practice Valuation — MDCopia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&family=Courier+Prime:wght@700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='90' font-family='Georgia,serif' font-weight='700' fill='%231B3A6B'%3EM%3C/text%3E%3C/svg%3E">
+<script src="js/gate.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <input type="checkbox" id="nav-toggle">
+  <div class="nav__inner">
+    <a href="index.html" class="nav__logo"><span class="md">MD</span><span class="c">C</span></a>
+    <div class="nav__links">
+      <a href="valuation.html" aria-current="page">Valuation</a>
+      <a href="why.html">Why MDCopia</a>
+    </div>
+    <label for="nav-toggle" class="nav__toggle"><span></span><span></span><span></span></label>
+  </div>
+  <div class="nav__panel">
+    <a href="valuation.html">Valuation</a>
+    <a href="why.html">Why MDCopia</a>
+  </div>
+</nav>
+
+<main>
+<div class="page">
+
+<h1>Practice Valuation</h1>
+<p class="lead">All information is confidential. We will never share your data without your written consent.</p>
+
+<form id="valuation-form" class="form" novalidate>
+
+  <div class="field">
+    <label class="field__label" for="f-practiceName">Practice Name <span class="req">*</span></label>
+    <input class="field__input" type="text" id="f-practiceName" name="practiceName" required autocomplete="organization">
+    <div class="field__helper" data-helper="practiceName"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-specialty">Practice Specialty <span class="req">*</span></label>
+    <select class="field__select" id="f-specialty" name="specialty" required>
+      <option value="">Select…</option>
+      <option>Primary Care</option>
+      <option>Internal Medicine</option>
+      <option>Family Medicine</option>
+      <option>Pediatrics</option>
+      <option>OB/GYN</option>
+      <option>Cardiology</option>
+      <option>Orthopedics</option>
+      <option>Dermatology</option>
+      <option>Ophthalmology</option>
+      <option>Gastroenterology</option>
+      <option>Urology</option>
+      <option>Neurology</option>
+      <option>Psychiatry</option>
+      <option>Radiology</option>
+      <option>Anesthesiology</option>
+      <option>Emergency Medicine</option>
+      <option>General Surgery</option>
+      <option>Other</option>
+    </select>
+    <div class="field__helper" data-helper="specialty"></div>
+  </div>
+
+  <div class="field" id="f-other-wrap" hidden>
+    <label class="field__label" for="f-specialty-other">Please specify your specialty</label>
+    <input class="field__input" type="text" id="f-specialty-other" name="specialtyOther">
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-city">City <span class="req">*</span></label>
+    <input class="field__input" type="text" id="f-city" name="city" required autocomplete="address-level2">
+    <div class="field__helper" data-helper="city"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-state">State <span class="req">*</span></label>
+    <select class="field__select" id="f-state" name="state" required>
+      <option value="">Select…</option>
+      <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+      <option>CO</option><option>CT</option><option>DE</option><option>DC</option><option>FL</option>
+      <option>GA</option><option>HI</option><option>ID</option><option>IL</option><option>IN</option>
+      <option>IA</option><option>KS</option><option>KY</option><option>LA</option><option>ME</option>
+      <option>MD</option><option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+      <option>MO</option><option>MT</option><option>NE</option><option>NV</option><option>NH</option>
+      <option>NJ</option><option>NM</option><option>NY</option><option>NC</option><option>ND</option>
+      <option>OH</option><option>OK</option><option>OR</option><option>PA</option><option>RI</option>
+      <option>SC</option><option>SD</option><option>TN</option><option>TX</option><option>UT</option>
+      <option>VT</option><option>VA</option><option>WA</option><option>WV</option><option>WI</option>
+      <option>WY</option>
+    </select>
+    <div class="field__helper" data-helper="state"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-npi">NPI</label>
+    <input class="field__input" type="text" id="f-npi" name="npi" inputmode="numeric" maxlength="10" placeholder="10-digit NPI">
+    <div class="field__helper" data-helper="npi">Optional. Enter your individual or organization NPI. This helps us pull public Medicare data to refine your valuation.</div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-revenue">Approximate Annual Revenue <span class="req">*</span></label>
+    <input class="field__input" type="text" id="f-revenue" name="revenue" inputmode="decimal" required placeholder="$0.00">
+    <div class="field__helper" data-helper="revenue"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-visits">Approximate Annual Visits <span class="req">*</span></label>
+    <input class="field__input" type="text" id="f-visits" name="visits" inputmode="numeric" required placeholder="0">
+    <div class="field__helper" data-helper="visits"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-sites">Number of Sites <span class="req">*</span></label>
+    <input class="field__input" type="number" id="f-sites" name="sites" min="1" value="1" required>
+    <div class="field__helper" data-helper="sites"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-realEstate">Real Estate <span class="req">*</span></label>
+    <select class="field__select" id="f-realEstate" name="realEstate" required>
+      <option value="">Select…</option>
+      <option>Own (included in sale)</option>
+      <option>Own (not included)</option>
+      <option>Lease</option>
+    </select>
+    <div class="field__helper" data-helper="realEstate"></div>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="f-timeline">Timeline to Sell <span class="req">*</span></label>
+    <select class="field__select" id="f-timeline" name="timeline" required>
+      <option value="">Select…</option>
+      <option>Exploring options (no timeline)</option>
+      <option>Within 6 months</option>
+      <option>6-12 months</option>
+      <option>1-2 years</option>
+      <option>2+ years</option>
+    </select>
+    <div class="field__helper" data-helper="timeline"></div>
+  </div>
+
+  <div class="privacy-notice">
+    Your information is confidential. MDCopia does not share your data with any third party without your explicit written consent. Read our full <a href="privacy.html">Privacy Policy</a>.
+  </div>
+
+  <button type="submit" class="btn btn--primary btn--block" id="calc-btn">Calculate My Valuation</button>
+</form>
+
+<!-- Valuation result, inline below the form -->
+<section class="card valuation-card" id="result" aria-live="polite">
+  <div class="valuation-card__loading-bar"></div>
+  <div class="valuation-card__status" id="status">Analyzing your practice data…</div>
+
+  <div class="valuation-card__result">
+    <div class="valuation-card__accent"></div>
+    <p class="valuation-card__range" id="range">$—</p>
+    <p class="valuation-card__methodology" id="methodology"></p>
+
+    <div class="factors">
+      <h3>Key Factors</h3>
+      <dl class="factors__grid" id="factors"></dl>
+    </div>
+
+    <p class="data-sources" id="sources"></p>
+
+    <div class="proceed">
+      <div class="field" style="text-align:left;">
+        <label class="field__label" for="f-email">Contact Email <span class="req">*</span></label>
+        <input class="field__input" type="email" id="f-email" name="email" required placeholder="you@practice.com" autocomplete="email">
+        <div class="field__helper" data-helper="email"></div>
+      </div>
+      <button class="btn btn--primary" id="proceed-btn">Proceed to Verification</button>
+      <p class="proceed__note">By proceeding, your practice details will be submitted to MDCopia. See our <a href="privacy.html">Privacy Policy</a> for how we handle your data.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="footer">
+  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a>
+</footer>
+
+<script type="module">
+import { computeValuation } from './js/engine.js';
+import { flow } from './js/flow.js';
+import { submitSellerLead, notifyEngineError } from './js/form-submit.js';
+import {
+  validateValuationForm, fieldHelpers,
+  formatCurrencyOnBlur, formatIntegerOnBlur,
+  parseRevenue, parseVisits, isValidEmail
+} from './js/form-validation.js';
+
+const form = document.getElementById('valuation-form');
+const result = document.getElementById('result');
+const rangeEl = document.getElementById('range');
+const methEl = document.getElementById('methodology');
+const factorsEl = document.getElementById('factors');
+const sourcesEl = document.getElementById('sources');
+const statusEl = document.getElementById('status');
+const proceedBtn = document.getElementById('proceed-btn');
+const emailEl = document.getElementById('f-email');
+const otherWrap = document.getElementById('f-other-wrap');
+
+const fmtUSD = new Intl.NumberFormat('en-US', {
+  style: 'currency', currency: 'USD',
+  minimumFractionDigits: 2, maximumFractionDigits: 2
+});
+
+// Restore prior state if seller comes back to this page
+const prior = flow.loadForm();
+if (prior) {
+  for (const [k, v] of Object.entries(prior)) {
+    const el = form.querySelector('[name="' + k + '"]');
+    if (el) el.value = v;
+  }
+  if (prior.specialty === 'Other') otherWrap.hidden = false;
+}
+const priorVal = flow.loadValuation();
+if (priorVal) renderResult(priorVal);
+
+// "Other" specialty toggle
+form.specialty.addEventListener('change', () => {
+  otherWrap.hidden = form.specialty.value !== 'Other';
+});
+
+// Currency / integer formatters
+const revInput = document.getElementById('f-revenue');
+const visInput = document.getElementById('f-visits');
+revInput.addEventListener('blur', () => formatCurrencyOnBlur(revInput));
+visInput.addEventListener('blur', () => formatIntegerOnBlur(visInput));
+
+// Inline helpers on blur
+form.addEventListener('blur', updateHelpers, true);
+
+let currentResult = priorVal || null;
+let recalcTimer = null;
+
+form.addEventListener('input', () => {
+  if (!currentResult) return;
+  // Live re-run after first calculation: 500ms debounce
+  clearTimeout(recalcTimer);
+  recalcTimer = setTimeout(() => runEngine({ live: true }), 500);
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errors = validateValuationForm(readForm());
+  showErrors(errors);
+  if (Object.keys(errors).length > 0) return;
+  await runEngine({ live: false });
+  result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+proceedBtn.addEventListener('click', async () => {
+  const data = readForm();
+  data.email = emailEl.value.trim();
+  if (!isValidEmail(data.email)) {
+    showHelper('email', 'Please enter a valid email address.', true);
+    emailEl.focus();
+    return;
+  }
+  if (!currentResult) return;
+  proceedBtn.disabled = true;
+  proceedBtn.textContent = 'Submitting…';
+  try {
+    flow.saveForm(data);
+    flow.saveValuation(currentResult);
+    flow.saveEmail(data.email);
+    await submitSellerLead(data, currentResult);
+    location.href = 'verify.html';
+  } catch (err) {
+    proceedBtn.disabled = false;
+    proceedBtn.textContent = 'Proceed to Verification';
+    showHelper('email', 'Submission failed: ' + err.message + '. Please try again.', true);
+  }
+});
+
+function readForm() {
+  const fd = new FormData(form);
+  const obj = Object.fromEntries(fd.entries());
+  obj.revenue = parseRevenue(obj.revenue);
+  obj.visits  = parseVisits(obj.visits);
+  obj.sites   = Number(obj.sites) || 1;
+  if (obj.specialty === 'Other' && obj.specialtyOther) {
+    obj.specialtyDisplay = obj.specialtyOther;
+  }
+  return obj;
+}
+
+async function runEngine(opts) {
+  setStatus('Analyzing your practice data…');
+  result.classList.add('is-visible', 'is-loading');
+  result.classList.remove('is-result');
+  cycleStatus();
+  try {
+    const data = readForm();
+    flow.saveForm(data);
+    const r = await computeValuation(data);
+    currentResult = r;
+    flow.saveValuation(r);
+    renderResult(r);
+  } catch (err) {
+    result.classList.remove('is-loading');
+    setStatus('We were unable to generate your valuation. Please try again.');
+    notifyEngineError(err, readForm());
+  }
+}
+
+function renderResult(r) {
+  rangeEl.textContent = `${fmtUSD.format(r.low)} – ${fmtUSD.format(r.high)}`;
+  methEl.textContent = r.methodology;
+  factorsEl.innerHTML = '';
+  for (const [k, v] of Object.entries(r.factors)) {
+    const dt = document.createElement('dt');
+    dt.textContent = labelize(k);
+    const dd = document.createElement('dd');
+    dd.textContent = v;
+    factorsEl.appendChild(dt);
+    factorsEl.appendChild(dd);
+  }
+  sourcesEl.textContent = 'Data sources: ' + r.dataSources.join(', ');
+  result.classList.remove('is-loading');
+  result.classList.add('is-visible', 'is-result');
+}
+
+let statusTimer = null;
+function cycleStatus() {
+  const messages = [
+    'Analyzing local market data…',
+    'Reviewing comparable transactions…',
+    'Applying specialty-specific multipliers…',
+    'Calibrating valuation range…'
+  ];
+  let i = 0;
+  clearInterval(statusTimer);
+  statusTimer = setInterval(() => {
+    if (!result.classList.contains('is-loading')) {
+      clearInterval(statusTimer); return;
+    }
+    setStatus(messages[i++ % messages.length]);
+  }, 2200);
+}
+
+function setStatus(msg) { statusEl.textContent = msg; }
+
+function updateHelpers() {
+  const data = readForm();
+  const helpers = fieldHelpers(data);
+  ['revenue', 'visits'].forEach(k => {
+    const el = form.querySelector(`[data-helper="${k}"]`);
+    if (!el) return;
+    if (helpers[k]) {
+      el.textContent = helpers[k];
+      el.classList.remove('field__helper--error');
+    } else if (!el.classList.contains('field__helper--error')) {
+      el.textContent = '';
+    }
+  });
+}
+
+function showErrors(errors) {
+  for (const [k, v] of Object.entries(errors)) {
+    showHelper(k, v, true);
+  }
+  for (const k of ['practiceName','specialty','city','state','revenue','visits','sites','realEstate','timeline','npi']) {
+    if (!errors[k]) {
+      const el = form.querySelector(`[data-helper="${k}"]`);
+      if (el && el.classList.contains('field__helper--error')) {
+        el.textContent = '';
+        el.classList.remove('field__helper--error');
+      }
+    }
+  }
+}
+
+function showHelper(name, msg, isError) {
+  const el = (form.querySelector(`[data-helper="${name}"]`)) ||
+             document.querySelector(`[data-helper="${name}"]`);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('field__helper--error', !!isError);
+}
+
+function labelize(camel) {
+  return camel
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, m => m.toUpperCase());
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Verify Email — MDCopia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&family=Courier+Prime:wght@700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='90' font-family='Georgia,serif' font-weight='700' fill='%231B3A6B'%3EM%3C/text%3E%3C/svg%3E">
+<script src="js/gate.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <input type="checkbox" id="nav-toggle">
+  <div class="nav__inner">
+    <a href="index.html" class="nav__logo"><span class="md">MD</span><span class="c">C</span></a>
+    <div class="nav__links">
+      <a href="valuation.html">Valuation</a>
+      <a href="why.html">Why MDCopia</a>
+    </div>
+    <label for="nav-toggle" class="nav__toggle"><span></span><span></span><span></span></label>
+  </div>
+  <div class="nav__panel">
+    <a href="valuation.html">Valuation</a>
+    <a href="why.html">Why MDCopia</a>
+  </div>
+</nav>
+
+<main>
+<div class="page page--narrow">
+
+<h1>Verify Your Email</h1>
+<p class="lead">To connect with qualified buyers, please verify the email address you entered.</p>
+
+<div class="card verify-card">
+  <p>We've sent a 6-digit verification code to <strong id="masked-email">your email</strong>.</p>
+
+  <form id="verify-form">
+    <div class="field">
+      <label class="field__label" for="f-code">Verification Code</label>
+      <input class="field__input" type="text" id="f-code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+      <div class="field__helper" id="code-helper"></div>
+    </div>
+    <button class="btn btn--primary btn--block" id="verify-btn" type="submit">Verify</button>
+  </form>
+
+  <div class="resend-row">
+    <button id="resend-btn" type="button">Resend code</button>
+    <span id="resend-cd"></span>
+  </div>
+</div>
+
+</div>
+</main>
+
+<footer class="footer">
+  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a>
+</footer>
+
+<script type="module">
+import { flow, guard } from './js/flow.js';
+import { requestCode, submitCode } from './js/verify.js';
+
+if (guard({ form: true, valuation: true, email: true })) { /* redirected */ }
+
+const email = flow.loadEmail();
+document.getElementById('masked-email').textContent = maskEmail(email);
+
+const helper = document.getElementById('code-helper');
+const verifyBtn = document.getElementById('verify-btn');
+const resendBtn = document.getElementById('resend-btn');
+const cdSpan = document.getElementById('resend-cd');
+
+// Auto-request a code on first load
+let lastSent = 0;
+sendCode();
+
+document.getElementById('verify-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('f-code').value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    setHelper('Enter the 6-digit code we emailed you.', true);
+    return;
+  }
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+  try {
+    const res = await submitCode(email, code);
+    if (res.verified) {
+      flow.markVerified();
+      location.href = 'submit.html';
+    } else {
+      setHelper(res.reason || 'Invalid code.', true);
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify';
+    }
+  } catch (err) {
+    setHelper('Verification failed: ' + err.message, true);
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Verify';
+  }
+});
+
+resendBtn.addEventListener('click', () => sendCode(true));
+
+async function sendCode(manual) {
+  const now = Date.now();
+  if (manual && now - lastSent < 60000) return;
+  lastSent = now;
+  resendBtn.disabled = true;
+  startCountdown(60);
+  try {
+    await requestCode(email);
+    setHelper(manual ? 'A new code has been sent.' : 'A 6-digit code has been sent to your email.', false);
+  } catch (err) {
+    setHelper('Could not send code: ' + err.message, true);
+  }
+}
+
+function startCountdown(secs) {
+  let s = secs;
+  cdSpan.textContent = ` (${s}s)`;
+  const t = setInterval(() => {
+    s--;
+    cdSpan.textContent = s > 0 ? ` (${s}s)` : '';
+    if (s <= 0) { clearInterval(t); resendBtn.disabled = false; }
+  }, 1000);
+}
+
+function setHelper(msg, isError) {
+  helper.textContent = msg;
+  helper.classList.toggle('field__helper--error', !!isError);
+}
+
+function maskEmail(e) {
+  if (!e || !e.includes('@')) return 'your email';
+  const [u, d] = e.split('@');
+  if (u.length <= 2) return u[0] + '***@' + d;
+  return u[0] + '***' + u.slice(-1) + '@' + d;
+}
+</script>
+
+</body>
+</html>
