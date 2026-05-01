@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MDCopia Engine Test Harness</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 960px; margin: 40px auto; padding: 0 24px; color: #111827; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  p.lead { color: #6B7280; margin-top: 0; }
+  button { font: 600 16px system-ui; padding: 12px 20px; margin: 6px 6px 6px 0; background: #1B3A6B; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+  button.secondary { background: transparent; color: #1B3A6B; border: 2px solid #1B3A6B; }
+  pre { background: #F7F8FA; border: 1px solid #E5E7EB; border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  label { font-size: 13px; color: #374151; display: block; }
+  input, select { width: 100%; padding: 6px 8px; font-size: 14px; border: 1px solid #D1D5DB; border-radius: 4px; box-sizing: border-box; }
+  .pass { color: #059669; font-weight: 600; }
+  .fail { color: #DC2626; font-weight: 600; }
+  hr { border: 0; border-top: 1px solid #E5E7EB; margin: 24px 0; }
+</style>
+</head>
+<body>
+<h1>MDCopia Engine — Test Harness</h1>
+<p class="lead">Open this file directly in a browser. Console + on-page output mirror each other. Phase 0 verification per CLAUDE.md.</p>
+
+<button id="det">Run Determinism</button>
+<button id="cont">Run Continuity</button>
+<button id="off" class="secondary">Run with NPI = none (offline-safe)</button>
+<button id="custom" class="secondary">Run Custom (form below)</button>
+<button id="clear" class="secondary">Clear Output</button>
+
+<hr>
+<div class="grid">
+  <div><label>Specialty</label><select id="f-spec"></select></div>
+  <div><label>State</label><select id="f-state"></select></div>
+  <div><label>City</label><input id="f-city" value="Pensacola"></div>
+  <div><label>NPI (optional)</label><input id="f-npi" placeholder="10 digits"></div>
+  <div><label>Annual Revenue</label><input id="f-rev" value="3200000"></div>
+  <div><label>Annual Visits</label><input id="f-vis" value="25000"></div>
+  <div><label>Sites</label><input id="f-sites" value="2"></div>
+  <div><label>Real Estate</label>
+    <select id="f-re">
+      <option>Lease</option>
+      <option>Own (included in sale)</option>
+      <option>Own (not included)</option>
+    </select>
+  </div>
+  <div><label>Timeline</label>
+    <select id="f-tl">
+      <option>Exploring options (no timeline)</option>
+      <option>Within 6 months</option>
+      <option>6-12 months</option>
+      <option selected>1-2 years</option>
+      <option>2+ years</option>
+    </select>
+  </div>
+</div>
+
+<hr>
+<pre id="out">Ready.</pre>
+
+<script type="module">
+import { computeValuation, verifyDeterminism, verifyContinuity } from './engine.js';
+import { META } from './tables-static.js';
+
+const out = document.getElementById('out');
+function log(msg) {
+  const stamp = new Date().toISOString().slice(11, 19);
+  out.textContent += `\n[${stamp}] ${msg}`;
+  out.scrollTop = out.scrollHeight;
+}
+function logObj(label, obj) {
+  log(label + '\n' + JSON.stringify(obj, null, 2));
+}
+
+// Capture console.log
+const origLog = console.log;
+console.log = (...args) => {
+  origLog(...args);
+  log(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
+};
+
+// Populate dropdowns
+const spec = document.getElementById('f-spec');
+META.SPECIALTIES.forEach(s => {
+  const o = document.createElement('option');
+  o.value = o.textContent = s;
+  if (s === 'Family Medicine') o.selected = true;
+  spec.appendChild(o);
+});
+const stSel = document.getElementById('f-state');
+META.STATES.sort().forEach(s => {
+  const o = document.createElement('option');
+  o.value = o.textContent = s;
+  if (s === 'FL') o.selected = true;
+  stSel.appendChild(o);
+});
+
+document.getElementById('clear').onclick = () => { out.textContent = 'Ready.'; };
+
+document.getElementById('det').onclick = async () => {
+  log('--- Determinism ---');
+  const r = await verifyDeterminism();
+  log(r.pass ? 'PASS ✓' : 'FAIL ✗');
+  logObj('sample result:', r.sample);
+};
+
+document.getElementById('cont').onclick = async () => {
+  log('--- Continuity ---');
+  const r = await verifyContinuity();
+  log(r.pass ? 'PASS ✓' : 'FAIL ✗');
+};
+
+document.getElementById('off').onclick = async () => {
+  log('--- Offline / no NPI ---');
+  const r = await computeValuation({
+    specialty: 'Family Medicine', state: 'FL', city: 'Pensacola',
+    npi: null, revenue: 2000000, visits: 18000, sites: 1,
+    realEstate: 'Lease', timeline: '1-2 years'
+  });
+  logObj('result:', r);
+};
+
+document.getElementById('custom').onclick = async () => {
+  const inputs = {
+    specialty:  document.getElementById('f-spec').value,
+    state:      document.getElementById('f-state').value,
+    city:       document.getElementById('f-city').value,
+    npi:        document.getElementById('f-npi').value || null,
+    revenue:    document.getElementById('f-rev').value,
+    visits:     document.getElementById('f-vis').value,
+    sites:      document.getElementById('f-sites').value,
+    realEstate: document.getElementById('f-re').value,
+    timeline:   document.getElementById('f-tl').value
+  };
+  log('--- Custom run ---');
+  logObj('inputs:', inputs);
+  const r = await computeValuation(inputs);
+  logObj('result:', r);
+};
+</script>
+</body>
+</html>
