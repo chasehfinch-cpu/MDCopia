@@ -561,6 +561,7 @@ function handleSellerSubmit(p) {
     npiType = enrichment.providerCount > 1 ? '2' : '1';
   }
 
+  var consented = !!p.consentAcknowledged;
   var row = headerOrderedRow(TAB.SELLER, {
     'Timestamp': ts,
     'Lead ID': leadId,
@@ -576,9 +577,10 @@ function handleSellerSubmit(p) {
     'Real Estate': p.realEstate || '',
     'Timeline': p.timeline || '',
     'Email': p.email,
-    'Status': 'New',
+    'Status': consented ? 'Consented — In Marketplace' : 'New',
     'Email Verified': false,
-    'Consent Given': false,
+    'Consent Given': consented,
+    'Consent Date': consented ? ts : '',
     'Code Attempts': 0,
     'Valuation Range Low': Number(p.valuationLow) || 0,
     'Valuation Range High': Number(p.valuationHigh) || 0,

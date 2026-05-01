@@ -178,8 +178,23 @@
         <input class="field__input" type="email" id="f-email" name="email" required placeholder="you@practice.com" autocomplete="email">
         <div class="field__helper" data-helper="email">We'll send a 6-digit code to verify your address. Your full, printable report unlocks once verified.</div>
       </div>
-      <button class="btn btn--primary" id="proceed-btn">Get Full Valuation Report</button>
-      <p class="proceed__note">By proceeding, your practice details and email are sent to MDCopia. We never share your information with anyone without your explicit consent. See our <a href="privacy.html">Privacy Policy</a>.</p>
+
+      <div class="card card--quote" style="text-align:left;margin:24px 0;font-size:15px;">
+        <p style="margin:0 0 8px;"><strong>By submitting, you authorize MDCopia to:</strong></p>
+        <ul style="margin:0 0 12px 20px;padding:0;line-height:1.6;">
+          <li>Hold your practice details and valuation in our records.</li>
+          <li>Introduce you to vetted buyers who have signed our Buyer Agreement, requiring them to open negotiations within your valuation range and negotiate in good faith.</li>
+        </ul>
+        <p style="margin:0;color:var(--mid-grey);">We never share your information with anyone other than a vetted, contractually-bound buyer. You may withdraw at any time by emailing <a href="mailto:hello@mdcopia.com">hello@mdcopia.com</a>. Read the full <a href="terms.html" target="_blank" rel="noopener">Terms of Submission</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+      </div>
+
+      <label class="checkbox-row" style="text-align:left;">
+        <input type="checkbox" id="consent-cb" required>
+        <span>I have read and agree to MDCopia's Terms of Submission and Privacy Policy.</span>
+      </label>
+
+      <button class="btn btn--primary" id="proceed-btn" disabled>Submit &amp; Get Full Report</button>
+      <div class="field__helper" data-helper="email"></div>
     </div>
   </div>
 </section>
@@ -262,6 +277,11 @@ form.addEventListener('submit', async (e) => {
   result.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
+const consentCb = document.getElementById('consent-cb');
+consentCb.addEventListener('change', () => {
+  proceedBtn.disabled = !consentCb.checked;
+});
+
 proceedBtn.addEventListener('click', async () => {
   const data = readForm();
   data.email = emailEl.value.trim();
@@ -270,7 +290,12 @@ proceedBtn.addEventListener('click', async () => {
     emailEl.focus();
     return;
   }
+  if (!consentCb.checked) {
+    showHelper('email', 'Please acknowledge the Terms of Submission to continue.', true);
+    return;
+  }
   if (!currentResult) return;
+  data.consentAcknowledged = true;
   proceedBtn.disabled = true;
   proceedBtn.textContent = 'Submitting…';
   try {
@@ -281,7 +306,7 @@ proceedBtn.addEventListener('click', async () => {
     location.href = 'verify.html';
   } catch (err) {
     proceedBtn.disabled = false;
-    proceedBtn.textContent = 'Proceed to Verification';
+    proceedBtn.textContent = 'Submit & Get Full Report';
     showHelper('email', 'Submission failed: ' + err.message + '. Please try again.', true);
   }
 });

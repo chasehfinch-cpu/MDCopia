@@ -6,8 +6,7 @@ const KEYS = {
   FORM:       'mdcopia_form',
   VALUATION:  'mdcopia_valuation',
   EMAIL:      'mdcopia_email',
-  VERIFIED:   'mdcopia_verified',
-  CONSENTED:  'mdcopia_consented'
+  VERIFIED:   'mdcopia_verified'
 };
 
 export const flow = {
@@ -19,20 +18,17 @@ export const flow = {
   loadEmail()           { return sessionStorage.getItem(KEYS.EMAIL); },
   markVerified()        { sessionStorage.setItem(KEYS.VERIFIED, '1'); },
   isVerified()          { return sessionStorage.getItem(KEYS.VERIFIED) === '1'; },
-  markConsented()       { sessionStorage.setItem(KEYS.CONSENTED, '1'); },
-  isConsented()         { return sessionStorage.getItem(KEYS.CONSENTED) === '1'; },
   clear() {
     Object.values(KEYS).forEach(k => sessionStorage.removeItem(k));
   }
 };
 
 export function guard(requirements) {
-  // requirements: { form?, valuation?, email?, verified?, consented? }
+  // requirements: { form?, valuation?, email?, verified? }
   if (requirements.form && !flow.loadForm())             return redirect('valuation.html');
   if (requirements.valuation && !flow.loadValuation())   return redirect('valuation.html');
   if (requirements.email && !flow.loadEmail())           return redirect('valuation.html');
   if (requirements.verified && !flow.isVerified())       return redirect('verify.html');
-  if (requirements.consented && !flow.isConsented())     return redirect('submit.html');
   return false;
 }
 
