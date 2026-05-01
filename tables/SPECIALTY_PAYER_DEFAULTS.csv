@@ -1,0 +1,20 @@
+specialty,medicare,medicaid,commercial,selfPay
+Primary Care,35,12,43,10
+Internal Medicine,40,10,40,10
+Family Medicine,32,14,44,10
+Pediatrics,5,35,50,10
+OB/GYN,10,25,55,10
+Cardiology,50,5,38,7
+Orthopedics,35,5,50,10
+Dermatology,30,5,50,15
+Ophthalmology,50,5,35,10
+Gastroenterology,40,5,45,10
+Urology,45,5,40,10
+Neurology,40,10,42,8
+Psychiatry,20,20,45,15
+Radiology,40,8,47,5
+Anesthesiology,35,10,50,5
+Emergency Medicine,35,20,30,15
+General Surgery,38,10,45,7
+Other,35,10,45,10
+_default,35,10,45,10

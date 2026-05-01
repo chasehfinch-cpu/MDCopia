@@ -26,7 +26,7 @@ whenReady(async function () {
     document.body.classList.add('gate-disabled');
     return;
   }
-  const stored = sessionStorage.getItem(STORAGE_KEY);
+  const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === PASSWORD_HASH) {
     document.body.classList.add('gate-disabled');
     return;
@@ -54,7 +54,7 @@ function injectOverlay() {
     const pw = document.getElementById('mdcopia-gate__input').value;
     const hash = await sha256(pw);
     if (hash === PASSWORD_HASH) {
-      sessionStorage.setItem(STORAGE_KEY, hash);
+      localStorage.setItem(STORAGE_KEY, hash);
       wrap.remove();
       document.body.classList.add('gate-disabled');
     } else {

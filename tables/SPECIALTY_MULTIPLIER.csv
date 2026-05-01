@@ -1,0 +1,20 @@
+specialty,multiplier
+Primary Care,0.85
+Internal Medicine,0.88
+Family Medicine,0.85
+Pediatrics,0.82
+OB/GYN,0.90
+Cardiology,1.10
+Orthopedics,1.15
+Dermatology,1.20
+Ophthalmology,1.18
+Gastroenterology,1.12
+Urology,1.08
+Neurology,0.95
+Psychiatry,0.90
+Radiology,1.05
+Anesthesiology,0.88
+Emergency Medicine,0.92
+General Surgery,1.00
+Other,1.00
+_default,1.00

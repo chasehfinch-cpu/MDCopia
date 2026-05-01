@@ -11,81 +11,172 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='90' font-family='Georgia,serif' font-weight='700' fill='%231B3A6B'%3EM%3C/text%3E%3C/svg%3E">
 <style>
-  /* Print-only refinements: hide nav/footer/buttons, tighten margins, add page header */
+  /* Two-page printable consulting-firm-style report.
+     Single sans serif (Source Sans 3) on the report itself. Display font
+     reserved only for the bolded valuation range and the wordmark in the
+     page header — keeps the document scannable and legal-looking. */
+
+  @page { size: letter; margin: 0.55in 0.65in; }
+
+  .report-shell { max-width: 760px; margin: 0 auto; }
+  .report-shell h1 { display: none; }
+  .report-shell .lead { display: none; }
+
+  .doc-page {
+    background: var(--white);
+    border: 1px solid var(--light-grey);
+    border-radius: 6px;
+    padding: 56px 60px;
+    margin-bottom: 32px;
+    color: var(--near-black);
+    font-family: var(--font-body);
+    font-size: 11.5pt;
+    line-height: 1.45;
+    page-break-after: always;
+  }
+  .doc-page:last-child { page-break-after: auto; }
+
+  /* Document header (top of every page) */
+  .dh {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1.5px solid var(--royal-blue);
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+  .dh__brand {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1;
+  }
+  .dh__brand .md { color: var(--royal-blue); }
+  .dh__brand .copia { color: var(--gold); }
+  .dh__meta {
+    text-align: right;
+    font-size: 9pt;
+    color: var(--mid-grey);
+    line-height: 1.35;
+  }
+  .dh__meta strong { color: var(--near-black); }
+
+  .doc-page h2 {
+    font-family: var(--font-body);
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    color: var(--royal-blue);
+    margin: 18px 0 8px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--light-grey);
+    font-weight: 700;
+  }
+  .doc-page p { margin: 0 0 8px; font-size: 10.5pt; color: var(--dark-grey); line-height: 1.5; }
+
+  .def { margin: 0 0 6px; font-size: 10pt; color: var(--dark-grey); }
+  .def strong { color: var(--near-black); }
+
+  table.kv { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 10pt; }
+  table.kv td { padding: 4px 8px; border-bottom: 1px solid var(--off-white); vertical-align: top; }
+  table.kv td:first-child { color: var(--dark-grey); font-weight: 600; width: 42%; }
+  table.kv td:last-child { color: var(--near-black); }
+
+  table.data { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 9.5pt; }
+  table.data thead th {
+    background: var(--royal-blue-pale);
+    color: var(--royal-blue-deep);
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1.5px solid var(--royal-blue);
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table.data tbody td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--off-white);
+    color: var(--dark-grey);
+    vertical-align: top;
+  }
+  table.data tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data tbody tr:last-child td { border-bottom: 1px solid var(--light-grey); }
+  table.data tfoot td { padding: 5px 8px; font-weight: 700; color: var(--near-black); border-top: 1.5px solid var(--royal-blue); }
+
+  .range-box {
+    text-align: center;
+    margin: 14px 0;
+    padding: 18px 0 16px;
+    border: 2px solid var(--royal-blue);
+    border-radius: 4px;
+    background: var(--off-white);
+  }
+  .range-box__label {
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--royal-blue);
+    margin: 0 0 6px;
+    font-weight: 700;
+  }
+  .range-box__value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28pt;
+    color: var(--near-black);
+    margin: 0;
+    line-height: 1;
+  }
+  .range-box__hint {
+    font-size: 9pt;
+    color: var(--mid-grey);
+    margin: 6px 0 0;
+  }
+
+  .page-footer {
+    margin-top: 28px;
+    padding-top: 8px;
+    border-top: 1px solid var(--light-grey);
+    font-size: 8.5pt;
+    color: var(--mid-grey);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .signature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+    font-size: 9.5pt;
+  }
+  .signature-row .sig {
+    border-top: 1px solid var(--dark-grey);
+    padding-top: 4px;
+    color: var(--mid-grey);
+  }
+
+  .small-print { font-size: 8.5pt; color: var(--mid-grey); line-height: 1.45; margin-top: 14px; }
+
   @media print {
-    body { visibility: visible !important; }
+    body { visibility: visible !important; background: white !important; }
     .nav, .footer, .no-print { display: none !important; }
     main { padding-top: 0 !important; }
     .page { padding: 0 !important; max-width: none !important; }
-    .report__brand { display: block !important; }
-    .report-card { border: 0 !important; padding: 0 !important; }
+    .report-shell { max-width: none !important; margin: 0 !important; }
+    .doc-page {
+      border: 0 !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      page-break-after: always;
+    }
+    .doc-page:last-child { page-break-after: auto; }
     a { color: var(--near-black) !important; text-decoration: none !important; }
-    @page { margin: 0.6in 0.8in; }
-  }
-  .report__brand { display: none; text-align: center; margin-bottom: 32px; }
-  .report__brand-mark {
-    font-family: var(--font-display);
-    font-size: 36px;
-    font-weight: 700;
-    margin: 0;
-  }
-  .report__brand-mark .md { color: var(--royal-blue); }
-  .report__brand-mark .copia { color: var(--gold); }
-  .report__brand-tag {
-    font-size: 13px;
-    color: var(--mid-grey);
-    margin-top: 4px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .report-card { padding: 40px; }
-  .report-meta {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 6px 24px;
-    font-size: 15px;
-    border-top: 1px solid var(--light-grey);
-    border-bottom: 1px solid var(--light-grey);
-    padding: 16px 0;
-    margin: 24px 0 32px;
-  }
-  .report-meta dt { color: var(--dark-grey); font-weight: 600; }
-  .report-meta dd { margin: 0; color: var(--near-black); }
-  .report-range {
-    text-align: center;
-    margin: 32px 0;
-  }
-  .report-range__accent {
-    width: 80px; height: 2px;
-    background: var(--gold);
-    margin: 0 auto 16px;
-  }
-  .report-range__value {
-    font-family: var(--font-display);
-    font-size: 44px;
-    font-weight: 700;
-    margin: 0;
-  }
-  .report-range__label {
-    font-size: 14px;
-    color: var(--mid-grey);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 8px;
-  }
-  .actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 40px;
-    padding-top: 32px;
-    border-top: 1px solid var(--light-grey);
-  }
-  .disclaimer {
-    margin-top: 32px;
-    font-size: 13px;
-    color: var(--mid-grey);
-    line-height: 1.5;
   }
 </style>
 <script src="js/gate.js"></script>
@@ -109,66 +200,171 @@
 </nav>
 
 <main>
-<div class="page page--narrow">
+<div class="page">
 
-<div class="no-print">
-  <h1>Your Valuation Report</h1>
-  <p class="lead">Below is your full report. Use the <strong>Print</strong> button to save it as a PDF or print a hard copy. Your information has been recorded with MDCopia.</p>
-</div>
-
-<article class="card report-card">
-  <div class="report__brand">
-    <p class="report__brand-mark"><span class="md">MD</span><span class="copia">Copia</span></p>
-    <p class="report__brand-tag">Confidential Practice Valuation</p>
-  </div>
-
-  <h2 style="font-size:24px;margin-top:0;">Practice Valuation Summary</h2>
-  <dl class="report-meta">
-    <dt>Practice</dt><dd id="r-practice">—</dd>
-    <dt>Specialty</dt><dd id="r-specialty">—</dd>
-    <dt>Location</dt><dd id="r-location">—</dd>
-    <dt>Annual Revenue (reported)</dt><dd id="r-revenue">—</dd>
-    <dt>Annual Visits (reported)</dt><dd id="r-visits">—</dd>
-    <dt>Sites</dt><dd id="r-sites">—</dd>
-    <dt>Real Estate</dt><dd id="r-realestate">—</dd>
-    <dt>Sale Timeline</dt><dd id="r-timeline">—</dd>
-    <dt>Report Date</dt><dd id="r-date">—</dd>
-  </dl>
-
-  <div class="report-range">
-    <div class="report-range__accent"></div>
-    <p class="report-range__value" id="r-range">$—</p>
-    <p class="report-range__label">Estimated Enterprise Value Range</p>
-  </div>
-
-  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:32px;">Methodology</h3>
-  <p id="r-methodology" style="color:var(--dark-grey);"></p>
-
-  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:24px;">Key Factors</h3>
-  <dl class="factors__grid" id="r-factors" style="display:grid;grid-template-columns:max-content 1fr;gap:8px 24px;font-size:15px;"></dl>
-
-  <h3 style="font-family:var(--font-body);text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--dark-grey);margin-top:24px;">Data Sources</h3>
-  <p id="r-sources" style="color:var(--mid-grey);font-size:14px;"></p>
-
-  <p class="disclaimer">
-    This valuation is an indicative range produced by MDCopia's proprietary engine using public data sources, specialty-specific multipliers, and geographic market adjustments. It is not a formal appraisal, fairness opinion, or investment advice. Final transaction value depends on buyer-specific synergies, due diligence findings, deal structure, and current market conditions. MDCopia, LLC makes no warranty as to the accuracy of this estimate or the outcome of any transaction.
-  </p>
-</article>
-
-<div class="actions no-print">
+<div class="no-print" style="text-align:center;margin-bottom:24px;">
+  <h1 style="margin:0 0 8px;">Your Valuation Report</h1>
+  <p class="muted" style="font-size:14px;margin:0 0 16px;">Two pages. Use the <strong>Print</strong> button to save as PDF or print a hard copy. Your record is on file with MDCopia.</p>
   <button class="btn btn--primary" id="print-btn">Print / Save as PDF</button>
+  &nbsp;
   <a class="btn btn--secondary" href="index.html">Done</a>
 </div>
 
-<p class="muted no-print" style="margin-top:24px;font-size:14px;">
-  Your submission is on file. MDCopia is actively sourcing qualified buyers per the Terms of Submission you acknowledged. We'll contact you at your verified email when a vetted buyer is matched. To withdraw at any time, email <a href="mailto:sales@mdcopia.com">sales@mdcopia.com</a>.
-</p>
+<div class="report-shell">
+
+<!-- ============== PAGE 1 ============== -->
+<section class="doc-page" id="doc-page-1">
+
+  <header class="dh">
+    <p class="dh__brand"><span class="md">MD</span><span class="copia">Copia</span></p>
+    <div class="dh__meta">
+      <strong>Confidential Practice Valuation</strong><br>
+      Report ID: <span id="r-leadid">—</span><br>
+      Issued: <span id="r-date">—</span>
+    </div>
+  </header>
+
+  <h2>1. Subject of Report</h2>
+  <table class="kv">
+    <tr><td>Practice</td><td id="r-practice">—</td></tr>
+    <tr><td>Specialty</td><td id="r-specialty">—</td></tr>
+    <tr><td>Location</td><td id="r-location">—</td></tr>
+    <tr><td>Reported Annual Revenue</td><td id="r-revenue">—</td></tr>
+    <tr><td>Reported Annual Visits</td><td id="r-visits">—</td></tr>
+    <tr><td>Sites</td><td id="r-sites">—</td></tr>
+    <tr><td>Real Estate Status</td><td id="r-realestate">—</td></tr>
+    <tr><td>Sale Timeline</td><td id="r-timeline">—</td></tr>
+  </table>
+
+  <h2>2. Indicative Enterprise Value</h2>
+  <div class="range-box">
+    <p class="range-box__label">Estimated Enterprise Value Range</p>
+    <p class="range-box__value" id="r-range">$—</p>
+    <p class="range-box__hint">Indicative range; opening position for negotiation per MDCopia Buyer Agreement.</p>
+  </div>
+
+  <h2>3. Methodology Statement</h2>
+  <p id="r-methodology">—</p>
+  <p class="def"><strong>"MDCopia Proprietary Engine"</strong> means MDCopia, LLC's proprietary deterministic valuation engine, calibrated against publicly observed transaction data and refined using post-transaction outcome data.</p>
+  <p class="def"><strong>"Collections"</strong> means estimated annual cash collections, derived from reported revenue net of contractual adjustments. Estimated as 95% of reported revenue absent CMS-derived collection data.</p>
+  <p class="def"><strong>"Indicative Range"</strong> means the symmetric ±15% spread around the engine's point estimate, rounded to the nearest $5,000.</p>
+
+  <h2>4. Engine Walkthrough</h2>
+  <table class="data">
+    <thead>
+      <tr><th>Step</th><th>Component</th><th class="num">Value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Reported revenue</td><td class="num" id="c-revenue">—</td></tr>
+      <tr><td>2</td><td>× Estimated collection rate</td><td class="num" id="c-collrate">—</td></tr>
+      <tr><td>3</td><td>= Collections base</td><td class="num" id="c-collections">—</td></tr>
+      <tr><td>4</td><td>× Base multiplier (collections curve)</td><td class="num" id="c-base">—</td></tr>
+      <tr><td>5</td><td>× Specialty multiplier</td><td class="num" id="c-spec">—</td></tr>
+      <tr><td>6</td><td>× Payer mix adjustment</td><td class="num" id="c-payer">—</td></tr>
+      <tr><td>7</td><td>× Scale factor (providers × sites)</td><td class="num" id="c-scale">—</td></tr>
+      <tr><td>8</td><td>× Real-estate factor</td><td class="num" id="c-re">—</td></tr>
+      <tr><td>9</td><td>× Timeline factor</td><td class="num" id="c-timeline">—</td></tr>
+      <tr><td>10</td><td>× Geographic market factor</td><td class="num" id="c-market">—</td></tr>
+      <tr><td>11</td><td>= Point estimate</td><td class="num" id="c-point">—</td></tr>
+      <tr><td>12</td><td>± 15% spread, rounded to $5,000</td><td class="num" id="c-spread">—</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="2">Indicative Enterprise Value Range</td><td class="num" id="c-final">—</td></tr>
+    </tfoot>
+  </table>
+
+  <h2>5. Disclaimer</h2>
+  <p class="small-print">This Report is an indicative valuation prepared by the MDCopia Proprietary Engine using public datasets and proprietary multipliers. It is <strong>not</strong> a formal appraisal, fairness opinion, audit, or investment advice and does not satisfy regulatory, fiduciary, or fairness standards required for any board approval, lender requirement, tax filing, or court proceeding. Final transaction value depends on factors outside this Report, including buyer-specific synergies, due diligence findings, deal structure, tax considerations, and prevailing market conditions. MDCopia, LLC makes no representation or warranty regarding the accuracy of this Report or the outcome of any transaction. See full Terms of Submission and Privacy Policy at www.mdcopia.com.</p>
+
+  <div class="signature-row">
+    <div class="sig">Prepared by — MDCopia Proprietary Engine</div>
+    <div class="sig">Issued — <span id="r-date2">—</span></div>
+  </div>
+
+  <div class="page-footer">
+    <span>MDCopia, LLC · www.mdcopia.com</span>
+    <span>Page 1 of 2</span>
+  </div>
+</section>
+
+<!-- ============== PAGE 2 ============== -->
+<section class="doc-page" id="doc-page-2">
+
+  <header class="dh">
+    <p class="dh__brand"><span class="md">MD</span><span class="copia">Copia</span></p>
+    <div class="dh__meta">
+      <strong>Supporting Analysis</strong><br>
+      Report ID: <span id="r-leadid2">—</span>
+    </div>
+  </header>
+
+  <h2>6. Cost-Per-Visit Reference</h2>
+  <p>Cost per visit (CPV) is the average revenue generated per patient encounter. Compares your reported CPV against the national specialty range for blended payer mix.</p>
+  <table class="data">
+    <thead>
+      <tr><th>Metric</th><th class="num">Value</th><th>Rationale</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Your reported CPV</td><td class="num" id="cpv-user">—</td><td>Reported revenue ÷ reported visits.</td></tr>
+      <tr><td>Geographic-adjusted expected CPV</td><td class="num" id="cpv-expected">—</td><td>Specialty national midpoint × dampened state market factor.</td></tr>
+      <tr><td>National specialty range</td><td class="num" id="cpv-range">—</td><td>Per ENGINE.md §"CPV Model" (MGMA, CMS allowed amounts, blended commercial/Medicare).</td></tr>
+      <tr><td>Your CPV vs. expected</td><td class="num" id="cpv-flag">—</td><td>Outside ±50%/×2.0 → revenue/visits inputs may need re-confirmation.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>7. Payer Mix Probability Matrix</h2>
+  <p>Estimated share of revenue by payer category. <span id="payer-source-note">Source noted below.</span></p>
+  <table class="data">
+    <thead>
+      <tr><th>Payer</th><th class="num">Estimated Share</th><th>Effect on Multiplier</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Medicare</td><td class="num" id="pm-medicare">—</td><td>Baseline 35%. −0.1% per point above baseline.</td></tr>
+      <tr><td>Medicaid</td><td class="num" id="pm-medicaid">—</td><td>Baseline 10%. −0.4% per point above baseline (lower reimbursement).</td></tr>
+      <tr><td>Commercial</td><td class="num" id="pm-commercial">—</td><td>Baseline 45%. <strong>+0.3% per point above baseline</strong> (higher reimbursement).</td></tr>
+      <tr><td>Self-pay / Other</td><td class="num" id="pm-self">—</td><td>Baseline 10%. −0.2% per point above baseline (collection risk).</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td>Total / Net effect on Step 6</td><td class="num">100.00%</td><td id="pm-net">—</td></tr>
+    </tfoot>
+  </table>
+  <p class="small-print">Source: <span id="pm-source">—</span>. Baselines from MGMA DataDive and AMA Physician Practice Benchmark Survey published summaries.</p>
+
+  <h2>8. Geographic &amp; Demographic Snapshot</h2>
+  <p>State-level demographic context for <strong id="geo-state">—</strong>. Source: U.S. Census Bureau ACS 2024 estimates.</p>
+  <table class="data">
+    <thead>
+      <tr><th>Indicator</th><th class="num">Value</th><th>Implication</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Total population</td><td class="num" id="g-pop">—</td><td>Patient base scale.</td></tr>
+      <tr><td>Share aged 65+</td><td class="num" id="g-65">—</td><td>Higher share → larger Medicare-eligible pool.</td></tr>
+      <tr><td>5-year population growth</td><td class="num" id="g-grow">—</td><td>Forward-looking demand trajectory.</td></tr>
+      <tr><td>Median household income</td><td class="num" id="g-inc">—</td><td>Proxy for commercial-payer concentration and self-pay capacity.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9. How These Tie to Your Range</h2>
+  <p>Step 10 (Geographic Market Factor) reflects state-level cost of operating a practice and market depth, blending CMS GPCI with cost-of-living indices. Step 6 (Payer Mix Adjustment) reflects your derived mix above. Step 5 (Specialty Multiplier) reflects observed transaction premiums for your specialty. The intersection of these adjustments, applied to your Collections base, produces the bolded range on Page 1.</p>
+
+  <h2>10. Buyer Engagement</h2>
+  <p>Your record is now in the MDCopia marketplace. Buyers introduced through MDCopia have signed the Buyer Agreement, which contractually obligates them to (a) initiate negotiations within the range above; (b) negotiate in good faith; (c) maintain confidentiality; and (d) not re-disclose your information without consent. See full provisions in §5 of the Terms of Submission.</p>
+
+  <p class="small-print">Withdraw at any time by emailing sales@mdcopia.com from the address on file. This Report supersedes any prior MDCopia output for the same submission ID.</p>
+
+  <div class="page-footer">
+    <span>MDCopia, LLC · www.mdcopia.com</span>
+    <span>Page 2 of 2</span>
+  </div>
+</section>
+
+</div>
 
 </div>
 </main>
 
 <footer class="footer no-print">
-  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a>
+  © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Submission</a>
 </footer>
 
 <script type="module">
@@ -177,38 +373,82 @@ import { flow, guard } from './js/flow.js';
 if (guard({ form: true, valuation: true, email: true, verified: true })) { /* redirected */ }
 
 const fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtUSDshort = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtInt = new Intl.NumberFormat('en-US');
+const fmtPct = (n) => (n == null ? '—' : (Number(n).toFixed(2) + '%'));
+const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
 const f = flow.loadForm();
 const v = flow.loadValuation();
 
 if (f && v) {
-  document.getElementById('r-practice').textContent = f.practiceName || '—';
-  document.getElementById('r-specialty').textContent = f.specialty === 'Other' && f.specialtyOther ? f.specialtyOther : (f.specialty || '—');
-  document.getElementById('r-location').textContent = (f.city || '') + (f.state ? ', ' + f.state : '');
-  document.getElementById('r-revenue').textContent = fmtUSD.format(Number(f.revenue) || 0);
-  document.getElementById('r-visits').textContent = fmtInt.format(Number(f.visits) || 0);
-  document.getElementById('r-sites').textContent = String(f.sites || 1);
-  document.getElementById('r-realestate').textContent = f.realEstate || '—';
-  document.getElementById('r-timeline').textContent = f.timeline || '—';
-  document.getElementById('r-date').textContent = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  // Page 1 metadata
+  const leadId = v.leadId || ('LEAD-' + Date.now().toString(36).toUpperCase());
+  set('r-leadid', leadId);
+  set('r-leadid2', leadId);
+  const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  set('r-date', dateStr);
+  set('r-date2', dateStr);
+  set('r-practice', f.practiceName || '—');
+  set('r-specialty', (f.specialty === 'Other' && f.specialtyOther) ? f.specialtyOther : (f.specialty || '—'));
+  set('r-location', (f.city || '') + (f.state ? ', ' + f.state : ''));
+  set('r-revenue', fmtUSD.format(Number(f.revenue) || 0));
+  set('r-visits', fmtInt.format(Number(f.visits) || 0));
+  set('r-sites', String(f.sites || 1));
+  set('r-realestate', f.realEstate || '—');
+  set('r-timeline', f.timeline || '—');
+  set('r-range', fmtUSD.format(v.low) + ' – ' + fmtUSD.format(v.high));
+  set('r-methodology', v.methodology || '');
 
-  document.getElementById('r-range').textContent = fmtUSD.format(v.low) + ' – ' + fmtUSD.format(v.high);
-  document.getElementById('r-methodology').textContent = v.methodology || '';
+  // Page 1 walkthrough
+  const c = (v.analysis && v.analysis.calc) || {};
+  set('c-revenue',     fmtUSD.format(c.reportedRevenue || Number(f.revenue) || 0));
+  set('c-collrate',    ((c.collectionsRate || 0.95) * 100).toFixed(2) + '%');
+  set('c-collections', fmtUSD.format(c.collections || 0));
+  set('c-base',        (c.baseMultiplier || 0).toFixed(4) + '×');
+  set('c-spec',        (c.specialtyMult || 1).toFixed(4) + '×');
+  set('c-payer',       (c.payerMixMult || 1).toFixed(4) + '×');
+  set('c-scale',       (c.scaleMult || 1).toFixed(4) + '×');
+  set('c-re',          (c.realEstateMult || 1).toFixed(4) + '×');
+  set('c-timeline',    (c.timelineMult || 1).toFixed(4) + '×');
+  set('c-market',      (c.marketMult || 1).toFixed(4) + '×');
+  set('c-point',       fmtUSD.format(c.pointEstimate || 0));
+  set('c-spread',      '±' + ((c.spread || 0.15) * 100).toFixed(0) + '%');
+  set('c-final',       fmtUSD.format(v.low) + ' – ' + fmtUSD.format(v.high));
 
-  const factorsEl = document.getElementById('r-factors');
-  for (const [k, val] of Object.entries(v.factors || {})) {
-    const dt = document.createElement('dt');
-    dt.style.color = 'var(--dark-grey)';
-    dt.style.fontWeight = '600';
-    dt.textContent = k.replace(/([A-Z])/g, ' $1').replace(/^./, m => m.toUpperCase());
-    const dd = document.createElement('dd');
-    dd.style.margin = '0';
-    dd.textContent = val;
-    factorsEl.appendChild(dt);
-    factorsEl.appendChild(dd);
+  // Page 2: CPV
+  const cpv = v.analysis && v.analysis.cpv;
+  if (cpv) {
+    set('cpv-user',     fmtUSDshort.format(cpv.user) + ' / visit');
+    set('cpv-expected', fmtUSDshort.format(cpv.expected) + ' / visit');
+    set('cpv-range',    fmtUSDshort.format(cpv.specialtyLow) + ' – ' + fmtUSDshort.format(cpv.specialtyHigh));
+    set('cpv-flag',     cpv.withinExpected ? 'Within expected band' : 'Outside expected band');
   }
-  document.getElementById('r-sources').textContent = (v.dataSources || []).join(' · ');
+
+  // Page 2: Payer Matrix
+  const pm = v.analysis && v.analysis.payerMatrix;
+  if (pm) {
+    set('pm-medicare',   fmtPct(pm.medicare));
+    set('pm-medicaid',   fmtPct(pm.medicaid));
+    set('pm-commercial', fmtPct(pm.commercial));
+    set('pm-self',       fmtPct(pm.selfPay));
+    set('pm-source',     pm.source || '—');
+    if (c.payerMixMult != null) {
+      const pct = ((c.payerMixMult - 1) * 100);
+      set('pm-net', (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%');
+    }
+    set('payer-source-note', 'Source: ' + (pm.source || '—') + '.');
+  }
+
+  // Page 2: Demographics
+  const d = v.analysis && v.analysis.demographics;
+  if (d) {
+    set('geo-state', d.state || '—');
+    set('g-pop',  d.population ? fmtInt.format(d.population) : '—');
+    set('g-65',   d.age65PlusPct != null ? d.age65PlusPct.toFixed(1) + '%' : '—');
+    set('g-grow', d.popGrowth5yrPct != null ? (d.popGrowth5yrPct >= 0 ? '+' : '') + d.popGrowth5yrPct.toFixed(1) + '%' : '—');
+    set('g-inc',  d.medianHouseholdIncome ? fmtUSDshort.format(d.medianHouseholdIncome) : '—');
+  }
 }
 
 document.getElementById('print-btn').addEventListener('click', () => window.print());

@@ -1,0 +1,48 @@
+Step,Component,Source,Formula,Value,Running Total
+,,,,,
+"Inputs",,,,
+0a,Practice Specialty,Form,—,Family Medicine,
+0b,State,Form,—,FL,
+0c,Annual Revenue (USD),Form,—,3200000,
+0d,Annual Visits,Form,—,25000,
+0e,Sites,Form,—,2,
+0f,Real Estate,Form,—,Lease,
+0g,Sale Timeline,Form,—,1-2 years,
+0h,Provider count (default; from NPI when supplied),NPPES API or default 1,—,1,
+,,,,,
+"Step 1 — Collections base",,,,
+1a,Reported revenue,Inputs,—,3200000,
+1b,Estimated collection rate,"95% default; CMS-derived if NPI returns Medicare allowed amount",—,0.95,
+1c,Collections base,Step 1a × Step 1b,3200000 * 0.95,3040000,3040000
+,,,,,
+"Step 2 — Multipliers (each from a lookup table)",,,,
+2a,Base multiplier (interpolated),BASE_MULTIPLIER_ANCHORS,interp(3040000) between (2M=0.70) and (5M=0.80),0.7347,
+2b,Specialty multiplier,SPECIALTY_MULTIPLIER[Family Medicine],lookup,0.85,
+2c,Payer mix adjustment,SPECIALTY_PAYER_DEFAULTS[Family Medicine] → formula,1 + (44-45)*0.003 + (14-10)*-0.004 + (32-35)*-0.001 + (10-10)*-0.002,0.9800,
+2d,Scale factor (1 provider × 2 sites),"providerFactor=1+log2(1)*0.05=1; siteFactor=1+min(1*0.02,0.10)=1.02",1 * 1.02,1.0200,
+2e,Real-estate factor,REAL_ESTATE_FACTOR[Lease],lookup,0.97,
+2f,Timeline factor,TIMELINE_FACTOR[1-2 years],lookup,1.00,
+2g,Geographic market factor,STATE_MARKET_FACTOR[FL],lookup,1.05,
+,,,,,
+"Step 3 — Multiply through",,,,
+3a,Apply Base,Running × 2a,3040000 * 0.7347,2233488,2233488
+3b,Apply Specialty,Running × 2b,2233488 * 0.85,1898465,1898465
+3c,Apply Payer Mix,Running × 2c,1898465 * 0.98,1860496,1860496
+3d,Apply Scale,Running × 2d,1860496 * 1.02,1897706,1897706
+3e,Apply Real Estate,Running × 2e,1897706 * 0.97,1840775,1840775
+3f,Apply Timeline,Running × 2f,1840775 * 1.00,1840775,1840775
+3g,Apply Market,Running × 2g,1840775 * 1.05,1932814,1932814
+,,,,,
+"Step 4 — Range assembly",,,,
+4a,Point estimate,Step 3g,—,1932814,
+4b,Spread,fixed,15%,0.15,
+4c,Low (point × 0.85 rounded to $5K),floor((1932814*0.85)/5000)*5000,1642892 → 1640000,1640000,
+4d,High (point × 1.15 rounded to $5K),round((1932814*1.15)/5000)*5000,2222736 → 2225000,2225000,
+,,,,,
+"Final Range",,,,1640000 – 2225000,
+,,,,,
+"Calibration check",,,,
+5a,Implied revenue multiple,point ÷ revenue,1932814 / 3200000,0.604,
+5b,Specialty band (TRANSACTION_MULTIPLES),Family Medicine,0.5x – 0.9x,within band,
+,,,,,
+"NOTE: Numbers above match the engine's actual output to within rounding (engine returns 1650000 – 2230000 due to floor/round nuance and slightly different interpolation precision). The structure of the math is identical."

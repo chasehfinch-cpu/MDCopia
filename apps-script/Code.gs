@@ -180,6 +180,84 @@ var ENGINE_TABLES = (function () {
     '6-12 months':0.98,'1-2 years':1.00,'2+ years':1.02,_default:1.00
   };
 
+  // National blended-payer CPV midpoints (ENGINE.md §"Cost-Per-Visit Model").
+  // Used for revenue-validity check and to populate the report's CPV reference.
+  var SPECIALTY_BASE_CPV = {
+    'Primary Care':       175,
+    'Internal Medicine':  200,
+    'Family Medicine':    175,
+    'Pediatrics':         150,
+    'OB/GYN':             250,
+    'Cardiology':         425,
+    'Orthopedics':        400,
+    'Dermatology':        325,
+    'Ophthalmology':      375,
+    'Gastroenterology':   500,
+    'Urology':            325,
+    'Neurology':          275,
+    'Psychiatry':         225,
+    'Radiology':          325,
+    'Anesthesiology':     400,
+    'Emergency Medicine': 325,
+    'General Surgery':    450,
+    'Other':              275,
+    _default:             275
+  };
+  // Specialty CPV ranges (low/high) shown on the report's page 2.
+  var SPECIALTY_CPV_RANGE = {
+    'Primary Care':       [150, 200],
+    'Internal Medicine':  [175, 225],
+    'Family Medicine':    [150, 200],
+    'Pediatrics':         [125, 175],
+    'OB/GYN':             [200, 300],
+    'Cardiology':         [350, 500],
+    'Orthopedics':        [300, 500],
+    'Dermatology':        [250, 400],
+    'Ophthalmology':      [300, 450],
+    'Gastroenterology':   [400, 600],
+    'Urology':            [250, 400],
+    'Neurology':          [200, 350],
+    'Psychiatry':         [175, 275],
+    'Radiology':          [250, 400],
+    'Anesthesiology':     [300, 500],
+    'Emergency Medicine': [250, 400],
+    'General Surgery':    [350, 550],
+    'Other':              [200, 400],
+    _default:             [200, 400]
+  };
+
+  // U.S. Census Bureau ACS 2024 estimates, state level.
+  // population, age65PlusPct, popGrowth5yrPct, medianHouseholdIncome
+  var STATE_DEMOGRAPHICS = {
+    AL:{p:5108468,a65:17.7,g:1.5,inc:60660}, AK:{p:733406,a65:13.8,g:-0.6,inc:89740},
+    AZ:{p:7497004,a65:18.6,g:6.2,inc:73450}, AR:{p:3088354,a65:17.8,g:1.8,inc:56335},
+    CA:{p:39060000,a65:15.6,g:-0.6,inc:91905}, CO:{p:5957493,a65:15.7,g:4.0,inc:87598},
+    CT:{p:3617176,a65:18.3,g:1.0,inc:90213}, DE:{p:1031890,a65:20.1,g:5.6,inc:79325},
+    DC:{p:687324,a65:13.0,g:0.7,inc:101027}, FL:{p:22610726,a65:21.6,g:5.5,inc:69303},
+    GA:{p:11029227,a65:15.5,g:3.6,inc:71355}, HI:{p:1435138,a65:20.1,g:-1.5,inc:94814},
+    ID:{p:1964726,a65:17.0,g:9.0,inc:74636}, IL:{p:12549689,a65:17.7,g:-1.7,inc:78433},
+    IN:{p:6862199,a65:16.8,g:1.7,inc:67173}, IA:{p:3207004,a65:17.9,g:0.7,inc:70571},
+    KS:{p:2940546,a65:17.3,g:0.4,inc:69747}, KY:{p:4526154,a65:17.7,g:0.7,inc:60183},
+    LA:{p:4573749,a65:17.0,g:-1.6,inc:57650}, ME:{p:1395722,a65:22.4,g:2.7,inc:68251},
+    MD:{p:6164660,a65:17.1,g:0.7,inc:98461}, MA:{p:7001399,a65:18.1,g:0.8,inc:96505},
+    MI:{p:10037261,a65:18.6,g:0.0,inc:68505}, MN:{p:5737915,a65:17.0,g:1.2,inc:84313},
+    MS:{p:2940057,a65:17.3,g:-1.0,inc:54915}, MO:{p:6196156,a65:17.9,g:1.0,inc:65920},
+    MT:{p:1132812,a65:20.5,g:5.0,inc:69922}, NE:{p:1978379,a65:16.5,g:1.4,inc:71722},
+    NV:{p:3194176,a65:17.4,g:5.0,inc:77719}, NH:{p:1402054,a65:20.1,g:2.5,inc:90845},
+    NJ:{p:9290841,a65:17.7,g:0.6,inc:99781}, NM:{p:2114371,a65:19.4,g:0.2,inc:62268},
+    NY:{p:19571216,a65:17.7,g:-3.0,inc:81386}, NC:{p:10835491,a65:17.4,g:4.5,inc:70804},
+    ND:{p:783926,a65:16.4,g:1.3,inc:73959}, OH:{p:11785935,a65:18.5,g:0.4,inc:67769},
+    OK:{p:4053824,a65:16.8,g:2.5,inc:62138}, OR:{p:4233358,a65:19.1,g:0.4,inc:80426},
+    PA:{p:12972008,a65:19.6,g:0.0,inc:73824}, RI:{p:1095962,a65:19.6,g:1.8,inc:81854},
+    SC:{p:5373555,a65:18.7,g:5.0,inc:67804}, SD:{p:919318,a65:17.7,g:3.7,inc:69457},
+    TN:{p:7126489,a65:17.5,g:3.8,inc:67631}, TX:{p:30503301,a65:13.5,g:6.4,inc:73035},
+    UT:{p:3417734,a65:12.0,g:7.5,inc:89168}, VT:{p:647464,a65:21.9,g:1.3,inc:74014},
+    VA:{p:8715698,a65:16.8,g:1.6,inc:87249}, WA:{p:7812880,a65:16.9,g:2.6,inc:90325},
+    WV:{p:1770071,a65:21.1,g:-1.8,inc:55217}, WI:{p:5910955,a65:18.4,g:0.7,inc:72458},
+    WY:{p:584057,a65:18.1,g:0.6,inc:72495},
+    _default:{p:0,a65:17.0,g:1.0,inc:75000}
+  };
+
   var TRANSACTION_MULTIPLES = {
     'Primary Care':       { revLow:0.5, revHigh:1.0 },
     'Internal Medicine':  { revLow:0.5, revHigh:0.9 },
@@ -210,7 +288,10 @@ var ENGINE_TABLES = (function () {
     BASE_MULTIPLIER_ANCHORS: BASE_MULTIPLIER_ANCHORS,
     REAL_ESTATE_FACTOR: REAL_ESTATE_FACTOR,
     TIMELINE_FACTOR: TIMELINE_FACTOR,
-    TRANSACTION_MULTIPLES: TRANSACTION_MULTIPLES
+    TRANSACTION_MULTIPLES: TRANSACTION_MULTIPLES,
+    SPECIALTY_BASE_CPV: SPECIALTY_BASE_CPV,
+    SPECIALTY_CPV_RANGE: SPECIALTY_CPV_RANGE,
+    STATE_DEMOGRAPHICS: STATE_DEMOGRAPHICS
   };
 })();
 
@@ -317,6 +398,34 @@ function handleComputeValuation(p) {
       inputs.state + '. Multipliers reflect specialty benchmarks, payer composition, ' +
       'practice scale, and local market conditions.';
 
+    // CPV reference data for the report's page 2
+    var cpvBaseline = tableLookup('SPECIALTY_BASE_CPV', inputs.specialty);
+    var cpvRange = tableLookup('SPECIALTY_CPV_RANGE', inputs.specialty);
+    var marketCpvFactor = (marketMult + 1) / 2; // damp the market factor for CPV
+    var userCpv = inputs.visits > 0 ? inputs.revenue / inputs.visits : 0;
+    var expectedCpv = cpvBaseline * marketCpvFactor;
+
+    // Demographics snapshot
+    var demo = tableLookup('STATE_DEMOGRAPHICS', inputs.state);
+
+    // Detailed multipliers (so the report can reproduce the math line by line)
+    var calc = {
+      reportedRevenue:   round2(inputs.revenue),
+      collectionsRate:   round4(collections / Math.max(inputs.revenue, 1)),
+      collections:       round2(collections),
+      baseMultiplier:    round4(baseMult),
+      specialtyMult:     round4(specMult),
+      payerMixMult:      round4(payerAdj),
+      scaleMult:         round4(scaleAdj),
+      realEstateMult:    round4(realEstateMult),
+      timelineMult:      round4(timelineMult),
+      marketMult:        round4(marketMult),
+      pointEstimate:     round2(pointEstimate),
+      spread:            spread,
+      lowRounded:        round2(low),
+      highRounded:       round2(high)
+    };
+
     return {
       success: true,
       result: {
@@ -344,6 +453,31 @@ function handleComputeValuation(p) {
           medicareAllowedAmount:  cms ? cms.medicareAllowedAmount : null,
           calibrationFlag:        calibrationFlag,
           impliedRevenueMultiple: round4(impliedMultiple)
+        },
+        // For the printable report (page 2)
+        analysis: {
+          calc: calc,
+          cpv: {
+            user:           round2(userCpv),
+            expected:       round2(expectedCpv),
+            specialtyLow:   cpvRange[0],
+            specialtyHigh:  cpvRange[1],
+            withinExpected: userCpv >= cpvRange[0] * 0.5 && userCpv <= cpvRange[1] * 2.0
+          },
+          payerMatrix: {
+            medicare:   round2(payer.medicare),
+            medicaid:   round2(payer.medicaid),
+            commercial: round2(payer.commercial),
+            selfPay:    round2(payer.selfPay),
+            source:     payerMixDescription
+          },
+          demographics: {
+            state:               inputs.state,
+            population:          demo.p,
+            age65PlusPct:        demo.a65,
+            popGrowth5yrPct:     demo.g,
+            medianHouseholdIncome: demo.inc
+          }
         }
       }
     };

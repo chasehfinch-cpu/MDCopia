@@ -1,0 +1,20 @@
+specialty,cpvLow,cpvHigh,cpvMidpoint
+Primary Care,150,200,175
+Internal Medicine,175,225,200
+Family Medicine,150,200,175
+Pediatrics,125,175,150
+OB/GYN,200,300,250
+Cardiology,350,500,425
+Orthopedics,300,500,400
+Dermatology,250,400,325
+Ophthalmology,300,450,375
+Gastroenterology,400,600,500
+Urology,250,400,325
+Neurology,200,350,275
+Psychiatry,175,275,225
+Radiology,250,400,325
+Anesthesiology,300,500,400
+Emergency Medicine,250,400,325
+General Surgery,350,550,450
+Other,200,400,275
+_default,200,400,275
