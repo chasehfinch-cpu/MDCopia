@@ -441,21 +441,68 @@ function tableLookup(name, key) {
 
 // One-shot admin: create the 9 engine-table tabs and populate them with the
 // current compiled-in values. Run from the Apps Script editor.
+//
+// Each tab is wrapped in its own try/catch so a single Sheet-API hiccup
+// doesn't black-hole the whole run. Look at the View → Logs after running.
 function setupEngineTables() {
-  var ss = book();
+  var ss;
+  try {
+    ss = book();
+    if (!ss) {
+      throw new Error('book() returned null — script is not bound to a Sheet and SHEET_ID property is empty.');
+    }
+    Logger.log('Sheet: ' + ss.getName() + ' (' + ss.getId() + ')');
+  } catch (err) {
+    Logger.log('FATAL: cannot open Sheet — ' + err);
+    throw err;
+  }
+
+  var results = [];
   for (var i = 0; i < ENGINE_TAB_SCHEMA.length; i++) {
     var spec = ENGINE_TAB_SCHEMA[i];
-    var sheet = ss.getSheetByName(spec.tab);
-    if (!sheet) sheet = ss.insertSheet(spec.tab);
-    sheet.clear();
-    var rows = [spec.headers].concat(buildTableRows(spec));
-    sheet.getRange(1, 1, rows.length, spec.headers.length).setValues(rows);
-    sheet.getRange(1, 1, 1, spec.headers.length).setFontWeight('bold').setBackground('#E8EEF6');
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, spec.headers.length);
+    try {
+      var sheet = ss.getSheetByName(spec.tab);
+      if (!sheet) sheet = ss.insertSheet(spec.tab);
+      sheet.clear();
+      var rows = [spec.headers].concat(buildTableRows(spec));
+      sheet.getRange(1, 1, rows.length, spec.headers.length).setValues(rows);
+      sheet.getRange(1, 1, 1, spec.headers.length).setFontWeight('bold').setBackground('#E8EEF6');
+      sheet.setFrozenRows(1);
+      try { sheet.autoResizeColumns(1, spec.headers.length); } catch (_) {} // cosmetic only
+      results.push('OK   ' + spec.tab + ' (' + (rows.length - 1) + ' rows)');
+    } catch (err) {
+      results.push('FAIL ' + spec.tab + ' — ' + (err && err.message ? err.message : err));
+    }
   }
-  invalidateEngineCache();
-  Logger.log('Engine tables initialized: ' + ENGINE_TAB_SCHEMA.map(function (s) { return s.tab; }).join(', '));
+
+  try { invalidateEngineCache(); } catch (_) {}
+  Logger.log('Engine tables setup complete:\n' + results.join('\n'));
+}
+
+// Diagnostic: prints what the Sheet looks like + auth state. Run if
+// setupEngineTables fails with no useful info.
+function diagnoseSetup() {
+  try {
+    var ss = book();
+    Logger.log('Spreadsheet OK: ' + (ss ? ss.getName() : 'NULL'));
+    if (ss) Logger.log('Existing tabs: ' + ss.getSheets().map(function(s){return s.getName();}).join(', '));
+  } catch (err) {
+    Logger.log('book() error: ' + err);
+  }
+  try {
+    Logger.log('Cache test: ' + (CacheService.getScriptCache() ? 'OK' : 'NULL'));
+  } catch (err) {
+    Logger.log('CacheService error: ' + err);
+  }
+  Logger.log('Schema length: ' + ENGINE_TAB_SCHEMA.length);
+  for (var i = 0; i < ENGINE_TAB_SCHEMA.length; i++) {
+    try {
+      var rows = buildTableRows(ENGINE_TAB_SCHEMA[i]);
+      Logger.log('  ' + ENGINE_TAB_SCHEMA[i].tab + ': ' + rows.length + ' rows ready');
+    } catch (err) {
+      Logger.log('  ' + ENGINE_TAB_SCHEMA[i].tab + ': BUILD ERROR ' + err);
+    }
+  }
 }
 
 function buildTableRows(spec) {
