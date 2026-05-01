@@ -231,8 +231,23 @@ function handleComputeValuation(p) {
     var npi = inputs.npi ? engineNppes(inputs.npi) : null;
     var cms = inputs.npi ? engineCms(inputs.npi) : null;
 
-    var dataSources = ['MDCopia static benchmark tables'];
-    if (npi) dataSources.push('NPPES NPI Registry');
+    var dataSources = [
+      'MDCopia Proprietary Engine',
+      'BLS Occupational Employment & Wage Statistics (OEWS)',
+      'BLS Consumer Price Index by Metropolitan Area',
+      'CMS Geographic Practice Cost Index (GPCI)',
+      'MGMA DataDive (published summaries)',
+      'AMA Physician Practice Benchmark Survey',
+      'KFF State Health Facts',
+      'U.S. Census Bureau American Community Survey',
+      'FOCUS Investment Banking — Physician Practice M&A reports',
+      'Scope Research — specialty-level transaction analyses',
+      'First Page Sage — Healthcare EBITDA & Valuation Multiples',
+      'Levin Associates — deal volume data',
+      'HealthValue Group — transaction trend analyses',
+      'SovDoc — specialty-level multiple analyses'
+    ];
+    if (npi) dataSources.push('NPPES NPI Registry (HHS / CMS)');
     if (cms) dataSources.push('CMS Medicare Physician & Other Practitioners');
 
     var practiceAge = npi && npi.enumerationYear

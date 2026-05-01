@@ -52,12 +52,25 @@
   --font-mono:    "Courier Prime", "Courier New", monospace;
 
   /* Sizes */
-  --max-content: 960px;
-  --section-pad-y: 80px;
-  --tap-min: 48px;
-  --input-h: 52px;
+  --max-content: 880px;
+  --section-pad-y: 56px;
+  --tap-min: 44px;
+  --input-h: 44px;
   --radius: 4px;
   --radius-card: 8px;
+
+  /* Type scale (denser, for the savvy 50+ audience) */
+  --fs-body:    16px;
+  --fs-small:   14px;
+  --fs-tiny:    13px;
+  --fs-lead:    18px;
+  --fs-h1:      32px;
+  --fs-h1-mob:  26px;
+  --fs-h2:      22px;
+  --fs-h3:      17px;
+  --fs-button:  16px;
+  --fs-input:   16px;
+  --fs-label:   14px;
 }
 
 /* ---------- 2. Reset + base ---------- */
@@ -66,8 +79,8 @@
 html, body { margin: 0; padding: 0; }
 body {
   font-family: var(--font-body);
-  font-size: 18px;
-  line-height: 1.6;
+  font-size: var(--fs-body);
+  line-height: 1.55;
   color: var(--near-black);
   background: var(--white);
   visibility: hidden; /* shown by gate.js once unlocked */
@@ -83,19 +96,19 @@ h1, h2, h3 {
   font-family: var(--font-display);
   color: var(--near-black);
   font-weight: 700;
-  line-height: 1.3;
-  margin: 0 0 16px;
+  line-height: 1.25;
+  margin: 0 0 14px;
 }
-h1 { font-size: 40px; }
-h2 { font-size: 32px; }
-h3 { font-size: 22px; }
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
 
-p { margin: 0 0 18px; }
+p { margin: 0 0 14px; }
 a { color: var(--royal-blue-light); }
 a:hover { color: var(--royal-blue-deep); }
 
 .lead {
-  font-size: 20px;
+  font-size: var(--fs-lead);
   color: var(--mid-grey);
   max-width: 600px;
 }
@@ -150,20 +163,22 @@ main { padding-top: 80px; /* clears fixed nav */ }
   justify-content: space-between;
 }
 .nav__logo {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  letter-spacing: 3px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 28px;
+  letter-spacing: 0;
   font-weight: 700;
-  padding: 10px 20px;
+  padding: 6px 18px 8px;
   border: 1.5px solid var(--gold);
   border-radius: 6px;
   text-decoration: none;
   background: transparent;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
+  line-height: 1;
 }
 .nav__logo .md { color: var(--royal-blue); }
-.nav__logo .c  { color: var(--gold); }
+.nav__logo .c  { color: var(--gold); margin-left: 1px; }
 .nav__links {
   display: flex;
   gap: 32px;
@@ -257,9 +272,9 @@ main { padding-top: 80px; /* clears fixed nav */ }
 
 .btn {
   font-family: var(--font-body);
-  font-size: 18px;
+  font-size: var(--fs-button);
   font-weight: 600;
-  padding: 14px 32px;
+  padding: 12px 28px;
   min-height: var(--input-h);
   border-radius: var(--radius);
   border: 2px solid transparent;
@@ -293,26 +308,26 @@ main { padding-top: 80px; /* clears fixed nav */ }
 }
 .field__label {
   display: block;
-  font-size: 16px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: var(--dark-grey);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .field__label .req { color: var(--error); margin-left: 4px; }
 .field__input,
 .field__select {
   width: 100%;
   font-family: var(--font-body);
-  font-size: 18px;
+  font-size: var(--fs-input);
   color: var(--near-black);
-  padding: 14px 18px;
+  padding: 10px 14px;
   min-height: var(--input-h);
-  border: 2px solid var(--light-grey);
+  border: 1.5px solid var(--light-grey);
   border-radius: var(--radius);
   background: var(--white);
   transition: border-color 150ms;
 }
-.field__select { padding: 12px 14px; }
+.field__select { padding: 9px 12px; }
 .field__input:focus,
 .field__select:focus {
   outline: 2px solid var(--focus-ring);
@@ -320,8 +335,8 @@ main { padding-top: 80px; /* clears fixed nav */ }
   border-color: var(--royal-blue);
 }
 .field__helper {
-  margin-top: 8px;
-  font-size: 16px;
+  margin-top: 6px;
+  font-size: var(--fs-small);
   color: var(--mid-grey);
   min-height: 1em;
 }
@@ -387,27 +402,33 @@ main { padding-top: 80px; /* clears fixed nav */ }
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 20px;
+}
+.steps-grid .card {
+  text-align: center;
+  padding: 28px 22px;
 }
 .step__num {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 28px;
   color: var(--gold);
   font-weight: 700;
   line-height: 1;
-  margin-bottom: 12px;
+  margin: 0 auto 10px;
 }
 .step__title {
   font-family: var(--font-body);
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--near-black);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  letter-spacing: 0.2px;
 }
 .step__desc {
-  font-size: 18px;
+  font-size: var(--fs-small);
   color: var(--mid-grey);
   margin: 0;
+  line-height: 1.55;
 }
 
 /* Valuation result */
@@ -518,52 +539,57 @@ main { padding-top: 80px; /* clears fixed nav */ }
 
 /* Landing hero */
 .hero {
-  min-height: calc(100vh - 70px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
+  justify-content: flex-start;
+  padding: 64px 24px 24px;
   text-align: center;
   background: var(--white);
 }
 .hero__brand {
   font-family: var(--font-display);
-  font-size: 72px;
+  font-size: 64px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -1px;
   line-height: 1;
 }
 .hero__brand .md { color: var(--royal-blue); }
-.hero__brand .copia { color: var(--gold); }
+.hero__brand .copia { color: var(--gold); font-style: italic; }
 .hero__rule {
   width: 60%;
-  max-width: 420px;
+  max-width: 360px;
   height: 1px;
   background: var(--light-grey);
-  margin: 24px auto 28px;
+  margin: 18px auto 18px;
   border: 0;
 }
 .hero__sub {
-  font-size: 20px;
+  font-size: var(--fs-lead);
   color: var(--mid-grey);
-  max-width: 560px;
-  margin: 0 auto 36px;
+  max-width: 540px;
+  margin: 0 auto 32px;
   line-height: 1.5;
 }
+.hero-section {
+  padding-top: 0;
+}
+.hero-section .steps-grid { max-width: 800px; margin: 0 auto 36px; }
+.hero-section .hero-cta { text-align: center; }
 
 /* Promise band */
 .promise {
   background: var(--royal-blue);
   color: var(--white);
-  padding: 60px 24px;
+  padding: 44px 24px;
   text-align: center;
 }
 .promise p {
-  font-size: 18px;
+  font-size: var(--fs-body);
   max-width: 700px;
-  margin: 0 auto 16px;
+  margin: 0 auto 12px;
+  line-height: 1.6;
 }
 .promise a { color: var(--gold); font-weight: 600; }
 .promise a:hover { color: var(--gold-light); }
@@ -690,28 +716,33 @@ main { padding-top: 80px; /* clears fixed nav */ }
 /* ---------- 12. Responsive ---------- */
 
 @media (max-width: 768px) {
-  body { font-size: 17px; }
-  h1 { font-size: 28px; }
-  h2 { font-size: 24px; }
+  body { font-size: var(--fs-body); }
+  h1 { font-size: var(--fs-h1-mob); }
+  h2 { font-size: 20px; }
 
-  main { padding-top: 70px; }
-  .page { padding: 40px 20px; }
-  .section { padding: 48px 20px; }
+  main { padding-top: 64px; }
+  .page { padding: 32px 18px; }
+  .section { padding: 36px 18px; }
 
+  .nav { height: 60px; }
+  .nav__panel { top: 60px; }
   .nav__links { display: none; }
   .nav__toggle { display: block; }
+  .nav__logo { font-size: 24px; padding: 4px 14px 6px; }
 
-  .hero__brand { font-size: 48px; }
-  .hero__sub { font-size: 18px; }
+  .hero { padding: 36px 20px 16px; }
+  .hero__brand { font-size: 44px; }
+  .hero__sub { font-size: var(--fs-body); }
 
   .steps-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 14px;
   }
+  .steps-grid .card { padding: 20px 18px; }
 
-  .valuation-card { padding: 24px 20px; }
-  .valuation-card__range { font-size: 28px; }
+  .valuation-card { padding: 20px 16px; }
+  .valuation-card__range { font-size: 24px; }
 
   .factors__grid { grid-template-columns: 1fr; gap: 4px 0; }
-  .factors__grid dd { margin-bottom: 12px; }
+  .factors__grid dd { margin-bottom: 10px; }
 }

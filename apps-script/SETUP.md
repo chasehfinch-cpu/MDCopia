@@ -18,7 +18,7 @@ In the Apps Script editor: ⚙ Project Settings → **Script Properties** → Ad
 | `RESEND_API_KEY` | `re_...` from your Resend dashboard | Yes |
 | `PARTNER_EMAIL_1` | First partner's email | Yes |
 | `PARTNER_EMAIL_2` | Second partner's email | Optional |
-| `SELLER_FROM_EMAIL` | e.g. `hello@mdcopia.com` (must be verified in Resend) | Yes |
+| `SELLER_FROM_EMAIL` | e.g. `sales@mdcopia.com` (must be verified in Resend) | Yes |
 | `SHEET_ID` | Leave blank (script uses the bound Sheet automatically) | Optional |
 
 ## 3. Initialize the Sheet tabs
