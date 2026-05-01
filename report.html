@@ -24,12 +24,12 @@
     background: var(--white);
     border: 1px solid var(--light-grey);
     border-radius: 6px;
-    padding: 36px 44px;
+    padding: 28px 36px;
     margin-bottom: 24px;
     color: var(--near-black);
     font-family: var(--font-body);
-    font-size: 10.5pt;
-    line-height: 1.4;
+    font-size: 10pt;
+    line-height: 1.35;
     page-break-after: always;
   }
   .doc-page:last-child { page-break-after: auto; }
@@ -39,8 +39,8 @@
     align-items: flex-end;
     justify-content: space-between;
     border-bottom: 1.5px solid var(--royal-blue);
-    padding-bottom: 6px;
-    margin-bottom: 12px;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
   }
   .dh__brand {
     font-family: var(--font-display);
@@ -62,54 +62,54 @@
 
   .sect {
     page-break-inside: avoid;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
   .doc-page h2 {
     font-family: var(--font-body);
-    font-size: 10.5pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--royal-blue);
-    margin: 12px 0 6px;
+    margin: 8px 0 4px;
     padding-bottom: 2px;
     border-bottom: 1px solid var(--light-grey);
     font-weight: 700;
   }
-  .doc-page p { margin: 0 0 6px; font-size: 10pt; color: var(--dark-grey); line-height: 1.45; }
-  .def { margin: 0 0 4px; font-size: 9.5pt; color: var(--dark-grey); }
+  .doc-page p { margin: 0 0 4px; font-size: 9.5pt; color: var(--dark-grey); line-height: 1.35; }
+  .def { margin: 0 0 3px; font-size: 9pt; color: var(--dark-grey); }
   .def strong { color: var(--near-black); }
 
-  table.kv { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 9.5pt; }
-  table.kv td { padding: 3px 8px; border-bottom: 1px solid var(--off-white); vertical-align: top; }
+  table.kv { width: 100%; border-collapse: collapse; margin: 2px 0 6px; font-size: 9.5pt; }
+  table.kv td { padding: 2px 8px; border-bottom: 1px solid var(--off-white); vertical-align: top; }
   table.kv td:first-child { color: var(--dark-grey); font-weight: 600; width: 42%; }
   table.kv td:last-child { color: var(--near-black); }
 
-  table.data { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9pt; }
+  table.data { width: 100%; border-collapse: collapse; margin: 4px 0 6px; font-size: 8.5pt; }
   table.data thead th {
     background: var(--royal-blue-pale);
     color: var(--royal-blue-deep);
     font-weight: 700;
     text-align: left;
-    padding: 4px 8px;
+    padding: 3px 8px;
     border-bottom: 1.5px solid var(--royal-blue);
-    font-size: 8.5pt;
+    font-size: 8pt;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   table.data tbody td {
-    padding: 3px 8px;
+    padding: 2px 8px;
     border-bottom: 1px solid var(--off-white);
     color: var(--dark-grey);
     vertical-align: top;
   }
   table.data tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
   table.data tbody tr:last-child td { border-bottom: 1px solid var(--light-grey); }
-  table.data tfoot td { padding: 4px 8px; font-weight: 700; color: var(--near-black); border-top: 1.5px solid var(--royal-blue); }
+  table.data tfoot td { padding: 3px 8px; font-weight: 700; color: var(--near-black); border-top: 1.5px solid var(--royal-blue); }
 
   .range-box {
     text-align: center;
-    margin: 8px 0 12px;
-    padding: 14px 0 12px;
+    margin: 6px 0 10px;
+    padding: 10px 0 8px;
     border: 2px solid var(--royal-blue);
     border-radius: 4px;
     background: var(--off-white);
@@ -126,7 +126,7 @@
   .range-box__value {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 26pt;
+    font-size: 22pt;
     color: var(--near-black);
     margin: 0;
     line-height: 1;
@@ -138,10 +138,10 @@
   }
 
   .page-footer {
-    margin-top: 18px;
-    padding-top: 6px;
+    margin-top: 12px;
+    padding-top: 4px;
     border-top: 1px solid var(--light-grey);
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: var(--mid-grey);
     display: flex;
     justify-content: space-between;
@@ -150,18 +150,18 @@
   .signature-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 14px;
-    font-size: 9pt;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 8.5pt;
     page-break-inside: avoid;
   }
   .signature-row .sig {
     border-top: 1px solid var(--dark-grey);
-    padding-top: 3px;
+    padding-top: 2px;
     color: var(--mid-grey);
   }
 
-  .small-print { font-size: 7.5pt; color: var(--mid-grey); line-height: 1.35; margin: 4px 0; }
+  .small-print { font-size: 7pt; color: var(--mid-grey); line-height: 1.3; margin: 2px 0; }
   .small-print strong { color: var(--dark-grey); }
 
   @media print {
@@ -369,27 +369,17 @@
   </div>
 
   <div class="sect">
-    <h2>8. How These Tie to Your Range</h2>
-    <p>Step 10 (Geographic Market Factor) reflects state-level cost of operating a practice and market depth, blending CMS GPCI with cost-of-living indices. Step 6 (Payer Mix Adjustment) reflects your derived mix above. Step 5 (Specialty Multiplier) reflects observed transaction premiums for your specialty. The intersection of these adjustments, applied to your Collections base, produces the bolded range on Page 1.</p>
-  </div>
-
-  <div class="sect">
-    <h2>9. Buyer Engagement</h2>
+    <h2>8. Buyer Engagement</h2>
     <p>Your record is now in the MDCopia marketplace. Buyers introduced through MDCopia have signed the MDCopia Buyer Agreement, which contractually obligates them to (a) initiate negotiations within the range above; (b) negotiate in good faith and complete reasonable due diligence; (c) maintain confidentiality on a need-to-know basis; and (d) not re-disclose your information without consent. See full provisions in §5 of the Terms of Submission at www.mdcopia.com/terms.html.</p>
     <p>Withdraw at any time by emailing <strong>sales@mdcopia.com</strong> from the address on file.</p>
   </div>
 
   <div class="sect">
-    <h2>10. What This Report Is Not</h2>
-    <p>This Report is an indicative valuation, not a formal appraisal, fairness opinion, audit, or investment advice. It does not satisfy regulatory, fiduciary, or fairness standards required for any board approval, lender requirement, tax filing, or court proceeding. MDCopia is not a licensed business broker and does not represent either party in negotiations. MDCopia receives compensation from buyers on a per-lead basis; sellers pay nothing.</p>
-  </div>
-
-  <div class="sect">
-    <h2>11. Disclaimer &amp; Terms (Summary)</h2>
-    <p class="small-print"><strong>No warranty.</strong> The MDCopia Proprietary Engine is provided "as is." MDCopia, LLC makes no representation or warranty, express or implied, as to accuracy, completeness, or fitness for any particular purpose. Final transaction value depends on factors outside this Report, including buyer-specific synergies, due diligence findings, deal structure (cash, equity, earn-out), tax considerations, and prevailing market conditions at close.</p>
+    <h2>9. Notices, Scope &amp; Disclaimers</h2>
+    <p class="small-print"><strong>Scope.</strong> This Report is an indicative valuation, not a formal appraisal, fairness opinion, audit, or investment advice. It does not satisfy any regulatory, fiduciary, or fairness standard required for board approval, lender requirement, tax filing, or court proceeding. MDCopia is not a licensed business broker and does not represent either party in negotiations. Sellers pay nothing; MDCopia is compensated by buyers on a per-lead basis.</p>
+    <p class="small-print"><strong>No warranty.</strong> The MDCopia Proprietary Engine is provided "as is." MDCopia, LLC makes no representation or warranty, express or implied, as to accuracy, completeness, or fitness for any particular purpose. Final transaction value depends on factors outside this Report including buyer-specific synergies, due diligence findings, deal structure (cash, equity, earn-out), tax considerations, and prevailing market conditions at close.</p>
     <p class="small-print"><strong>Limitation of liability.</strong> To the maximum extent permitted by law, MDCopia, LLC and its members, officers, employees, contractors, and agents shall not be liable for any indirect, incidental, consequential, or punitive damages, including lost profits, lost goodwill, or diminished transaction value, arising out of use of this Report. Total cumulative liability is capped at one hundred U.S. dollars ($100.00).</p>
-    <p class="small-print"><strong>Confidentiality.</strong> Your Practice Information is stored in MDCopia's secured Google Workspace environment and is not shared with any party other than vetted, contractually-bound buyers as described in §4 of the Terms of Submission. Your NPI, raw payer mix detail, and internal notes are <em>not</em> disclosed to buyers without separate written consent.</p>
-    <p class="small-print"><strong>Governing law.</strong> Governed by the laws of the State of Delaware. Disputes resolved by binding JAMS arbitration in Wilmington, Delaware. Class-action waiver applies. Full Terms of Submission and Privacy Policy at www.mdcopia.com/terms.html and www.mdcopia.com/privacy.html.</p>
+    <p class="small-print"><strong>Confidentiality.</strong> Your Practice Information is stored in MDCopia's secured Google Workspace environment and is not shared with any party other than vetted, contractually-bound buyers per §4 of the Terms of Submission. Your NPI, raw payer mix detail, and internal notes are not disclosed to buyers without separate written consent. <strong>Governing law.</strong> Delaware. Disputes resolved by binding JAMS arbitration in Wilmington, Delaware; class-action waiver applies. Full Terms of Submission, Privacy Policy, and Buyer Agreement at www.mdcopia.com.</p>
   </div>
 
   <div class="signature-row">
