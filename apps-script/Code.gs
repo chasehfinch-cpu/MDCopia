@@ -295,11 +295,201 @@ var ENGINE_TABLES = (function () {
   };
 })();
 
+// ---------- Live Engine-Table loading from the Sheet ----------
+// On first call after cache miss, reads each Tbl_* tab in the bound Sheet and
+// builds a runtime copy of ENGINE_TABLES. Cached 5 minutes. Fall back to the
+// compiled-in ENGINE_TABLES when the Sheet is unavailable or a tab is missing.
+
+var ENGINE_TAB_SCHEMA = [
+  { tab: 'Tbl_SpecialtyMultiplier',   target: 'SPECIALTY_MULTIPLIER',     headers: ['specialty','multiplier'] },
+  { tab: 'Tbl_StateMarketFactor',     target: 'STATE_MARKET_FACTOR',      headers: ['state','marketFactor'] },
+  { tab: 'Tbl_BaseMultiplierAnchors', target: 'BASE_MULTIPLIER_ANCHORS',  headers: ['collections','multiplier'] },
+  { tab: 'Tbl_RealEstateFactor',      target: 'REAL_ESTATE_FACTOR',       headers: ['realEstate','factor'] },
+  { tab: 'Tbl_TimelineFactor',        target: 'TIMELINE_FACTOR',          headers: ['timeline','factor'] },
+  { tab: 'Tbl_PayerDefaults',         target: 'SPECIALTY_PAYER_DEFAULTS', headers: ['specialty','medicare','medicaid','commercial','selfPay'] },
+  { tab: 'Tbl_CpvBySpecialty',        target: 'SPECIALTY_BASE_CPV',       headers: ['specialty','cpvLow','cpvHigh','cpvMidpoint'] },
+  { tab: 'Tbl_TransactionMultiples',  target: 'TRANSACTION_MULTIPLES',    headers: ['specialty','revLow','revHigh'] },
+  { tab: 'Tbl_StateDemographics',     target: 'STATE_DEMOGRAPHICS',       headers: ['state','population','age65PlusPct','popGrowth5yrPct','medianHouseholdIncome'] }
+];
+
+var ENGINE_CACHE_KEY = 'engine_tables_v2';
+var ENGINE_CACHE_SEC = 300; // 5 minutes
+
+function getEngineTables() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(ENGINE_CACHE_KEY);
+  if (hit) {
+    try { return JSON.parse(hit); } catch (_) {}
+  }
+  var live = loadEngineTablesFromSheet();
+  if (live) {
+    try { cache.put(ENGINE_CACHE_KEY, JSON.stringify(live), ENGINE_CACHE_SEC); } catch (_) {}
+    return live;
+  }
+  return ENGINE_TABLES;
+}
+
+function invalidateEngineCache() {
+  CacheService.getScriptCache().remove(ENGINE_CACHE_KEY);
+  Logger.log('Engine table cache cleared. Next valuation will re-read the Sheet.');
+}
+
+function loadEngineTablesFromSheet() {
+  try {
+    var ss = book();
+    var live = {};
+    for (var i = 0; i < ENGINE_TAB_SCHEMA.length; i++) {
+      var spec = ENGINE_TAB_SCHEMA[i];
+      var sheet = ss.getSheetByName(spec.tab);
+      if (!sheet) {
+        // Missing tab → fall back entirely so we don't serve a half-loaded set.
+        return null;
+      }
+      var rows = sheet.getDataRange().getValues();
+      if (rows.length < 2) return null;
+      live[spec.target] = parseTableRows(spec, rows);
+    }
+    // Augmented derived tables (kept compiled-in so founders don't have to maintain ranges twice)
+    live.SPECIALTY_CPV_RANGE = deriveSpecialtyCpvRangeFrom(live.SPECIALTY_BASE_CPV_RAW || ENGINE_TABLES.SPECIALTY_CPV_RANGE);
+    live.BLS_COMPENSATION = ENGINE_TABLES.BLS_COMPENSATION;
+    return live;
+  } catch (err) {
+    Logger.log('loadEngineTablesFromSheet failed: ' + err);
+    return null;
+  }
+}
+
+function parseTableRows(spec, rows) {
+  var headers = rows[0].map(function (h) { return String(h).trim(); });
+  var body = rows.slice(1);
+  var out = {};
+  if (spec.target === 'BASE_MULTIPLIER_ANCHORS') {
+    var pairs = [];
+    for (var i = 0; i < body.length; i++) {
+      var r = body[i];
+      if (r[0] === '' || r[0] == null) continue;
+      pairs.push([Number(r[0]), Number(r[1])]);
+    }
+    pairs.sort(function (a, b) { return a[0] - b[0]; });
+    return pairs;
+  }
+  if (spec.target === 'SPECIALTY_BASE_CPV') {
+    // Returns the midpoint as the table value; range derived separately.
+    var raw = {};
+    for (var j = 0; j < body.length; j++) {
+      var key = String(body[j][0]).trim();
+      if (!key) continue;
+      var lo = Number(body[j][1]);
+      var hi = Number(body[j][2]);
+      var mid = body[j][3] !== '' && body[j][3] != null ? Number(body[j][3]) : (lo + hi) / 2;
+      raw[key] = mid;
+      raw['__range__' + key] = [lo, hi];
+    }
+    if (raw._default == null) raw._default = ENGINE_TABLES.SPECIALTY_BASE_CPV._default;
+    return raw;
+  }
+  for (var k = 0; k < body.length; k++) {
+    var row = body[k];
+    var rkey = String(row[0]).trim();
+    if (!rkey) continue;
+    if (headers.length === 2) {
+      out[rkey] = Number(row[1]);
+    } else if (spec.target === 'STATE_DEMOGRAPHICS') {
+      out[rkey] = {
+        p:   Number(row[1]),
+        a65: Number(row[2]),
+        g:   Number(row[3]),
+        inc: Number(row[4])
+      };
+    } else if (spec.target === 'TRANSACTION_MULTIPLES') {
+      out[rkey] = { revLow: Number(row[1]), revHigh: Number(row[2]) };
+    } else if (spec.target === 'SPECIALTY_PAYER_DEFAULTS') {
+      out[rkey] = {
+        medicare:   Number(row[1]),
+        medicaid:   Number(row[2]),
+        commercial: Number(row[3]),
+        selfPay:    Number(row[4])
+      };
+    }
+  }
+  if (out._default === undefined && ENGINE_TABLES[spec.target] && ENGINE_TABLES[spec.target]._default !== undefined) {
+    out._default = ENGINE_TABLES[spec.target]._default;
+  }
+  return out;
+}
+
+function deriveSpecialtyCpvRangeFrom(raw) {
+  // Built from the SPECIALTY_BASE_CPV tab's __range__ markers. Falls back to compiled-in.
+  var out = {};
+  if (raw && typeof raw === 'object') {
+    for (var k in raw) {
+      if (k.indexOf('__range__') === 0) out[k.substring(9)] = raw[k];
+    }
+  }
+  if (Object.keys(out).length === 0) return ENGINE_TABLES.SPECIALTY_CPV_RANGE;
+  if (!out._default) out._default = ENGINE_TABLES.SPECIALTY_CPV_RANGE._default;
+  return out;
+}
+
 function tableLookup(name, key) {
-  var t = ENGINE_TABLES[name];
+  var tables = getEngineTables();
+  var t = tables[name] || ENGINE_TABLES[name];
   if (!t) return null;
   if (key === undefined) return t._default;
   return (t[key] !== undefined) ? t[key] : t._default;
+}
+
+// One-shot admin: create the 9 engine-table tabs and populate them with the
+// current compiled-in values. Run from the Apps Script editor.
+function setupEngineTables() {
+  var ss = book();
+  for (var i = 0; i < ENGINE_TAB_SCHEMA.length; i++) {
+    var spec = ENGINE_TAB_SCHEMA[i];
+    var sheet = ss.getSheetByName(spec.tab);
+    if (!sheet) sheet = ss.insertSheet(spec.tab);
+    sheet.clear();
+    var rows = [spec.headers].concat(buildTableRows(spec));
+    sheet.getRange(1, 1, rows.length, spec.headers.length).setValues(rows);
+    sheet.getRange(1, 1, 1, spec.headers.length).setFontWeight('bold').setBackground('#E8EEF6');
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, spec.headers.length);
+  }
+  invalidateEngineCache();
+  Logger.log('Engine tables initialized: ' + ENGINE_TAB_SCHEMA.map(function (s) { return s.tab; }).join(', '));
+}
+
+function buildTableRows(spec) {
+  var t = ENGINE_TABLES[spec.target];
+  var rows = [];
+  if (spec.target === 'BASE_MULTIPLIER_ANCHORS') {
+    for (var i = 0; i < t.length; i++) rows.push([t[i][0], t[i][1]]);
+    return rows;
+  }
+  if (spec.target === 'SPECIALTY_BASE_CPV') {
+    var range = ENGINE_TABLES.SPECIALTY_CPV_RANGE;
+    for (var k in t) {
+      if (k === '_default') continue;
+      var lo = range[k] ? range[k][0] : t[k];
+      var hi = range[k] ? range[k][1] : t[k];
+      rows.push([k, lo, hi, t[k]]);
+    }
+    rows.push(['_default', range._default[0], range._default[1], t._default]);
+    return rows;
+  }
+  for (var key in t) {
+    if (spec.target === 'STATE_DEMOGRAPHICS') {
+      var d = t[key];
+      rows.push([key, d.p, d.a65, d.g, d.inc]);
+    } else if (spec.target === 'TRANSACTION_MULTIPLES') {
+      rows.push([key, t[key].revLow, t[key].revHigh]);
+    } else if (spec.target === 'SPECIALTY_PAYER_DEFAULTS') {
+      var p = t[key];
+      rows.push([key, p.medicare, p.medicaid, p.commercial, p.selfPay]);
+    } else {
+      rows.push([key, t[key]]);
+    }
+  }
+  return rows;
 }
 
 // ---------- Engine route ----------
@@ -368,7 +558,7 @@ function handleComputeValuation(p) {
     }
 
     // Stage 3: multipliers
-    var baseMult = engineInterpolate(ENGINE_TABLES.BASE_MULTIPLIER_ANCHORS, collections);
+    var baseMult = engineInterpolate(getEngineTables().BASE_MULTIPLIER_ANCHORS || ENGINE_TABLES.BASE_MULTIPLIER_ANCHORS, collections);
     var specMult = tableLookup('SPECIALTY_MULTIPLIER', inputs.specialty);
     var realEstateMult = tableLookup('REAL_ESTATE_FACTOR', inputs.realEstate);
     var timelineMult = tableLookup('TIMELINE_FACTOR', inputs.timeline);

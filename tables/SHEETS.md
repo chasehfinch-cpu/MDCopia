@@ -1,69 +1,93 @@
 # MDCopia Engine — Spreadsheet Reference
 
-Every multiplier and lookup in the engine is here as a CSV. Each file
-matches the corresponding constant in `apps-script/Code.gs`. Founders edit
-these spreadsheets when public sources update; values flow back into the
-engine on the next deploy.
+The valuation engine reads its lookup tables **live** from the bound
+"MDCopia Operations" Google Sheet. Edit a cell in any `Tbl_*` tab and the
+next valuation request (within 5 minutes) picks up your change. No code
+deploy required.
 
-## What each file is
+## How to set this up (one-time, ~30 seconds)
 
-| File | Purpose | When to update |
+After you've redeployed `Code.gs` once:
+
+1. Open your Apps Script editor for `MDCopia Backend`.
+2. In the function dropdown, select **`setupEngineTables`**.
+3. Click **Run**. Authorize if prompted.
+4. Switch back to your "MDCopia Operations" Sheet — you should see 9 new
+   tabs alongside the original four:
+   - `Tbl_SpecialtyMultiplier`
+   - `Tbl_StateMarketFactor`
+   - `Tbl_BaseMultiplierAnchors`
+   - `Tbl_RealEstateFactor`
+   - `Tbl_TimelineFactor`
+   - `Tbl_PayerDefaults`
+   - `Tbl_CpvBySpecialty`
+   - `Tbl_TransactionMultiples`
+   - `Tbl_StateDemographics`
+
+Each tab opens with a bold royal-blue header row (frozen) and the current
+engine values pre-populated.
+
+## How updates flow
+
+1. You edit a cell in a `Tbl_*` tab (e.g., bump `STATE_MARKET_FACTOR` for
+   FL from 1.05 → 1.07 because GPCI shifted).
+2. Within 5 minutes, the engine cache expires; the next valuation reads the
+   new value automatically.
+3. To take effect immediately, run **`invalidateEngineCache`** from the
+   Apps Script editor — flushes the cache instantly.
+
+## Fallback behavior
+
+If the engine can't read a `Tbl_*` tab (someone deleted it, the Sheet is
+locked, network blip during a UrlFetchApp call, etc.), it falls back to
+the values compiled into `Code.gs`. **The engine never breaks because of a
+Sheet edit.** The compiled defaults are always there as a safety net.
+
+## What lives where
+
+| Tab | Purpose | When to update |
 |---|---|---|
-| `SPECIALTY_MULTIPLIER.csv` | Stage 3b — specialty premium/discount | Annually, or when transaction-multiple data shifts |
-| `STATE_MARKET_FACTOR.csv` | Stage 3g — geographic market adjustment | Annually with new GPCI / cost-of-living data |
-| `BASE_MULTIPLIER_ANCHORS.csv` | Stage 3a — collections curve anchors | Quarterly review; only update when anchor points need re-calibration |
-| `REAL_ESTATE_FACTOR.csv` | Stage 3e | Rare; only when ownership-vs-lease premium shifts materially |
-| `TIMELINE_FACTOR.csv` | Stage 3f | Rare |
-| `SPECIALTY_PAYER_DEFAULTS.csv` | Stage 3c — fallback payer mix when no NPI | Annually with new MGMA / AMA data |
-| `SPECIALTY_BASE_CPV.csv` | Page-2 CPV reference, validity check | Annually |
-| `TRANSACTION_MULTIPLES.csv` | Calibration band (revenue-multiple low/high) | Semi-annually as new deal data lands |
-| `STATE_DEMOGRAPHICS.csv` | Page-2 demographic snapshot | Annually with new Census ACS release |
-| `WORKED_EXAMPLE.csv` | Step-by-step computation for one input — your training/QA reference | When you change any other table — re-run this to verify |
+| `Tbl_SpecialtyMultiplier` | Stage 3b — specialty premium/discount | Annually, or when transaction-multiple data shifts |
+| `Tbl_StateMarketFactor` | Stage 3g — geographic market adjustment | Annually with new GPCI / cost-of-living data |
+| `Tbl_BaseMultiplierAnchors` | Stage 3a — collections curve anchors (piecewise-linear) | Quarterly review; only update when anchors need re-calibration |
+| `Tbl_RealEstateFactor` | Stage 3e | Rare |
+| `Tbl_TimelineFactor` | Stage 3f | Rare |
+| `Tbl_PayerDefaults` | Stage 3c — fallback payer mix when no NPI | Annually with new MGMA / AMA data |
+| `Tbl_CpvBySpecialty` | Page-2 CPV reference + revenue/visit validity check | Annually |
+| `Tbl_TransactionMultiples` | Calibration band (revenue-multiple low/high) | Semi-annually as new deal data lands |
+| `Tbl_StateDemographics` | Page-2 demographic snapshot | Annually with new Census ACS release |
 
-## How to use this in Google Sheets
+## CSV mirrors in this folder
 
-This is the recommended setup for ongoing maintenance.
+The `tables/*.csv` files in this repo mirror what the tabs hold. They serve
+two purposes:
 
-1. Create a new Google Sheet named `MDCopia Engine Tables`.
-2. For each file in this folder, add a tab with the same name (e.g. `SPECIALTY_MULTIPLIER`).
-3. Open the CSV in any text editor → copy → paste into the Sheet tab.
-4. The first row is the header. Data starts row 2.
-5. **Lock the header row** (View → Freeze → 1 row) so you don't accidentally edit column names.
-6. **Protect ranges that are formula-derived** (Data → Protect ranges) so a co-founder can't accidentally type over a calc.
+1. **Reference**: a quick way to see the current production values without
+   opening the Sheet.
+2. **Recovery**: if you ever blow away a tab by accident, run
+   `setupEngineTables()` again — it re-creates from the compiled-in
+   defaults (which match these CSVs).
 
-### When CMS, BLS, or another source publishes an update
-
-Example: CMS publishes a new GPCI file each January.
-
-1. Download the new CMS GPCI file from cms.gov.
-2. Compute the composite GPCI per state (per ENGINE.md §2C).
-3. Update the relevant cells in the `STATE_MARKET_FACTOR` tab.
-4. **Re-run `WORKED_EXAMPLE`** in your head or on a side calc — make sure the math still terminates in a reasonable range. The example is configured for FL / Family Medicine / $3.2M; if your edit changes the FL row, this is your sanity check.
-5. Open `apps-script/Code.gs` in this repo. The `STATE_MARKET_FACTOR` constant near the top of `ENGINE_TABLES` mirrors the CSV — update the same numbers there. Save.
-6. Deploy the new Code.gs version (Apps Script editor → Deploy → Manage deployments → New version). The web app URL stays the same.
-
-### Future: live Sheet → engine wiring
-
-If you'd rather not manually copy values into `Code.gs` on every update, the Sheet can be wired to feed the engine directly:
-
-1. In your Sheet: File → Share → Publish to web → CSV → "Entire document."
-2. In `apps-script/Code.gs`: replace the `tableLookup` function with one that fetches the published CSV via `UrlFetchApp` and caches it in `CacheService`.
-
-That's a 30-minute change. Ask me when you're ready to do it.
+If you change a value in the Sheet, also update the corresponding CSV here
+when convenient (so the repo stays in sync as documentation). It's not
+required for the engine — the live Sheet is authoritative.
 
 ## The "modified times-table" approach
 
-`WORKED_EXAMPLE.csv` is exactly that — a row-by-row times-table where each step is `previous_value × next_multiplier`. You can drop the same structure into a Google Sheet, replace the input cells (revenue, specialty, state, etc.), and it will recompute the full valuation visually. This is the right format because:
+`WORKED_EXAMPLE.csv` walks one valuation step-by-step: each row is `previous_value × next_multiplier`, with the source named for every value. Drop it into a tab in the same Sheet (call it `Tbl_WorkedExample`) and you can replace the input cells (revenue, specialty, state) with formulas that reference the live `Tbl_*` tabs. You'll get a real-time, auditable view of the engine's math that matches what the API returns to within rounding.
 
-- Every input the seller provides has a single, isolated effect.
-- Every multiplier comes from a named source you can audit.
-- The math is reproducible by hand on a calculator.
-
-This makes the engine **defensible to a physician's CPA** — they can trace exactly how their input becomes the output, with no black box.
+This is the structure that makes the engine **defensible to a physician's CPA** — every cell is traceable.
 
 ## Conventions
 
-- All CSVs have a `_default` row as a fallback for any key not explicitly listed.
-- Numbers are dimensionless multipliers unless the column header says otherwise (e.g., `medianHouseholdIncome` is in USD).
-- The `BASE_MULTIPLIER_ANCHORS` table is interpreted as a piecewise-linear curve interpolated by the engine — values between anchors are computed at runtime.
-- The `SPECIALTY_PAYER_DEFAULTS` percentages should sum to ~100 per row; the engine normalizes if they don't.
+- All tabs have a `_default` row as a fallback for any key not explicitly listed.
+- Numbers are dimensionless multipliers unless the column header says otherwise (e.g., `medianHouseholdIncome` is in USD, `population` in persons, `age65PlusPct` in percentage points).
+- `Tbl_BaseMultiplierAnchors` is interpreted as a piecewise-linear curve interpolated at runtime — values between rows are computed by the engine.
+- `Tbl_PayerDefaults` percentages should sum to ~100 per row; the engine normalizes if they don't.
+
+## Future: adding a new specialty or state
+
+1. Add a new row in `Tbl_SpecialtyMultiplier` (or `Tbl_StateMarketFactor`, etc.).
+2. Add the corresponding row to **every related tab** so the new key is found everywhere (`Tbl_PayerDefaults`, `Tbl_CpvBySpecialty`, `Tbl_TransactionMultiples` for a new specialty; `Tbl_StateDemographics` for a new state).
+3. Add the option to the form dropdown in `valuation.html`.
+4. (Optional) Add the matching constant in `Code.gs` ENGINE_TABLES so the fallback covers the new key too.
