@@ -1,0 +1,12 @@
+{
+  "name": "MDCopia",
+  "short_name": "MDCopia",
+  "description": "Confidential, data-driven physician practice valuations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1B3A6B",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }
+  ]
+}

@@ -667,10 +667,156 @@ section[id], .section[id] { scroll-margin-top: 96px; }
 .promise a { color: var(--gold); font-weight: 600; }
 .promise a:hover { color: var(--gold-light); }
 
-/* Why page */
+/* Why page (legacy; kept harmless) */
 .why-section { margin-bottom: 56px; }
 .why-section h2 { font-size: 28px; }
 .why-section p { color: var(--dark-grey); }
+
+/* Section kicker label (gold uppercase mini-label above h2) */
+.kicker {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+/* Lead prose paragraph (slightly larger, darker) */
+.lead-prose {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--dark-grey);
+  margin-bottom: 20px;
+  max-width: 600px;
+}
+
+/* Why-list (For Owners / For Buyers bullets) */
+.why-list {
+  margin: 16px 0 0;
+  padding-left: 20px;
+  list-style: none;
+}
+.why-list li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 14px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--dark-grey);
+}
+.why-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  border-radius: 50%;
+}
+.why-list li strong { color: var(--near-black); }
+
+/* Split-section: 60/40 grid for image-paired sections */
+.split-section { padding: var(--section-pad-y) 24px; }
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 56px;
+  align-items: start;
+}
+.split-section--reversed .split { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.split-section--reversed .split__copy { order: 2; }
+.split-section--reversed .split__aside { order: 1; }
+
+/* Atmospheric figure placeholder — gets a background-image once images
+   are approved and added in Phase C. For now renders a subtle gradient
+   so the layout is honest. */
+.atmos-figure {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 0 28px;
+  background: linear-gradient(135deg, var(--royal-blue-pale) 0%, var(--off-white) 60%, var(--gold-pale) 100%);
+}
+.atmos-figure[data-atmos="for-owners"] {
+  /* Replaced once Phase C image lands */
+  background: linear-gradient(160deg, #E8EEF6 0%, #FBF6EA 100%);
+}
+.atmos-figure[data-atmos="for-buyers"] {
+  background: linear-gradient(160deg, #0F2647 0%, #1B3A6B 60%, #2B5EA7 100%);
+}
+.atmos-figure__placeholder {
+  position: absolute; inset: 0;
+}
+
+/* Pull-quote (gold rule + Playfair italic) */
+.pull-quote {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--near-black);
+}
+.pull-quote__rule {
+  display: block;
+  width: 36px;
+  height: 2px;
+  background: var(--gold);
+  margin-bottom: 14px;
+}
+.pull-quote p { margin: 0; }
+
+/* Methodology grid */
+.methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 36px 0 24px;
+}
+.meth-item {
+  padding: 20px 22px;
+  background: var(--white);
+  border: 1px solid var(--light-grey);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 6px 6px 0;
+  transition: border-left-color 200ms, transform 200ms;
+}
+.meth-item:hover { border-left-color: var(--royal-blue); transform: translateY(-1px); }
+.meth-item h4 {
+  font-family: var(--font-body);
+  font-size: 14px;
+  margin: 0 0 8px;
+  color: var(--royal-blue-deep);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.meth-item p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mid-grey);
+  margin: 0;
+}
+.small-note {
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 16px;
+}
+
+/* Final-CTA section (royal-blue, like a closing band) */
+.cta-section {
+  background: var(--royal-blue-pale);
+  padding: 72px 24px;
+}
+.cta-section h2 {
+  font-size: 28px;
+  color: var(--royal-blue-deep);
+}
 
 /* Privacy long-form */
 .privacy-doc h2 {
@@ -839,4 +985,20 @@ body.gate-disabled .reveal.is-visible {
 
   .factors__grid { grid-template-columns: 1fr; gap: 4px 0; }
   .factors__grid dd { margin-bottom: 10px; }
+
+  /* Split sections collapse to single-column; aside before copy */
+  .split { grid-template-columns: 1fr; gap: 24px; }
+  .split-section--reversed .split { grid-template-columns: 1fr; }
+  .split-section--reversed .split__copy,
+  .split-section--reversed .split__aside { order: initial; }
+  .split__aside { margin-top: 8px; }
+  .atmos-figure { aspect-ratio: 16 / 9; margin-bottom: 16px; }
+
+  /* Methodology becomes 1 column on mobile */
+  .methodology-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .lead-prose { font-size: 16px; }
+  .pull-quote { font-size: 17px; }
+  .cta-section { padding: 56px 20px; }
+  .cta-section h2 { font-size: 22px; }
 }

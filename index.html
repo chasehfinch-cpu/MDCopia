@@ -10,7 +10,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Source+Sans+3:wght@400;600;700&family=Courier+Prime:wght@700&display=swap">
 <link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='90' font-family='Georgia,serif' font-weight='700' fill='%231B3A6B'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#1B3A6B">
+<meta property="og:title" content="MDCopia | Confidential Physician Practice Valuations">
+<meta property="og:description" content="Confidential, data-driven valuations for physician owners. Free.">
+<meta property="og:image" content="https://www.mdcopia.com/og.svg">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.mdcopia.com/">
+<meta name="twitter:card" content="summary_large_image">
 <script src="js/gate.js"></script>
 <script src="js/reveal.js" defer></script>
 </head>
@@ -24,7 +32,7 @@
     </a>
     <div class="nav__links">
       <a href="valuation.html">Valuation</a>
-      <a href="why.html">Why MDCopia</a>
+      <a href="#for-owners">Why MDCopia</a>
     </div>
     <label for="nav-toggle" class="nav__toggle" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -32,18 +40,19 @@
   </div>
   <div class="nav__panel">
     <a href="valuation.html">Valuation</a>
-    <a href="why.html">Why MDCopia</a>
+    <a href="#for-owners">Why MDCopia</a>
   </div>
 </nav>
 
 <main>
 
-<section class="hero hero-section">
+<!-- ====================== Hero + Steps ====================== -->
+<section class="hero hero-section" id="hero">
   <h1 class="hero__brand"><span class="md">MD</span><span class="copia">Copia</span></h1>
   <hr class="hero__rule">
   <p class="hero__sub">Confidential, data-driven valuations for physician owners. Free, in under five minutes, with no obligation beyond what you choose.</p>
 
-  <div class="steps-grid">
+  <div class="steps-grid" id="how-it-works">
     <div class="card card--blue">
       <div class="step__num">1</div>
       <h3 class="step__title">Enter Your Details</h3>
@@ -66,13 +75,133 @@
   </div>
 </section>
 
-<section class="section" style="padding-top:8px;padding-bottom:32px;">
-  <p class="muted" style="text-align:center;font-size:14px;letter-spacing:0.3px;margin:0;font-style:italic;">Powered by the MDCopia Proprietary Engine</p>
+<!-- ====================== Engine credit line ====================== -->
+<section class="section" style="padding-top:0;padding-bottom:64px;">
+  <p class="muted reveal" style="text-align:center;font-size:14px;letter-spacing:0.3px;margin:0;font-style:italic;">Powered by the MDCopia Proprietary Engine</p>
 </section>
 
-<section class="promise">
+<!-- ====================== Promise band ====================== -->
+<section class="promise reveal" id="promise">
   <p>Sellers and buyers start from the same number, established by data, not by leverage. Your information is never shared without your explicit consent.</p>
-  <p><a href="why.html" style="text-decoration:underline;">Learn more</a></p>
+</section>
+
+<!-- ====================== For Practice Owners ====================== -->
+<section class="section split-section" id="for-owners">
+  <div class="section-inner split">
+    <div class="split__copy reveal">
+      <p class="kicker">For Practice Owners</p>
+      <h2>Your practice. Your price. Your decision.</h2>
+      <p class="lead-prose">The traditional path is expensive before you ever know what your practice is worth. Most physicians end up negotiating with the first PE platform that calls them, with no independent number to anchor on.</p>
+      <ul class="why-list">
+        <li><strong>Boutique M&amp;A advisor:</strong> typically $25,000 to $75,000 for an upfront practice valuation memo.</li>
+        <li><strong>Regional brokerage commission:</strong> 3% to 10% of transaction value at close. On a $5M practice that is $150,000 to $500,000 out of your proceeds.</li>
+        <li><strong>Big 4 healthcare-advisory opinion:</strong> $75,000 to $150,000+, with months of due diligence before you have a number you can share.</li>
+        <li><strong>The hidden cost of asymmetry:</strong> the buyer has a dedicated M&amp;A team and target multiples. You have a gut feel. That gap routinely costs physicians hundreds of thousands of dollars on what should be the largest financial event of their career.</li>
+        <li><strong>MDCopia is free for sellers.</strong> No upfront fee, no success commission, no retainer. The buyer contractually agrees to begin negotiations inside your range, and you can withdraw at any time.</li>
+      </ul>
+    </div>
+    <aside class="split__aside reveal">
+      <figure class="atmos-figure" data-atmos="for-owners">
+        <div class="atmos-figure__placeholder" aria-hidden="true"></div>
+      </figure>
+      <blockquote class="pull-quote">
+        <span class="pull-quote__rule"></span>
+        <p>Your practice is the largest financial event of your career. You should know what it is worth before someone else tells you.</p>
+      </blockquote>
+    </aside>
+  </div>
+</section>
+
+<!-- ====================== For Buyers ====================== -->
+<section class="section split-section split-section--reversed" id="for-buyers">
+  <div class="section-inner split">
+    <div class="split__copy reveal">
+      <p class="kicker">For Buyers</p>
+      <h2>Better leads. Realistic expectations. Faster closes.</h2>
+      <ul class="why-list">
+        <li><strong>The problem with cold outreach:</strong> physician practices have low response rates, and when they engage, expectations are often misaligned by a factor of two or more in either direction.</li>
+        <li><strong>Pre-qualified by data:</strong> every MDCopia lead arrives with a defensible valuation range that the seller has already seen and accepted as the negotiation starting point.</li>
+        <li><strong>One contractual obligation:</strong> open negotiations within the range. Final price is yours and the seller's to determine through diligence and structure.</li>
+        <li><strong>What you receive per lead:</strong> seller contact information, the MDCopia valuation memo (methodology, data sources, key factors), and the supporting market and demographic snapshot for the practice's geography and specialty.</li>
+        <li><strong>Eliminates the most common reason deals fall apart:</strong> misaligned expectations on day one.</li>
+      </ul>
+    </div>
+    <aside class="split__aside reveal">
+      <figure class="atmos-figure" data-atmos="for-buyers">
+        <div class="atmos-figure__placeholder" aria-hidden="true"></div>
+      </figure>
+      <blockquote class="pull-quote">
+        <span class="pull-quote__rule"></span>
+        <p>Better leads. Realistic expectations. Faster closes.</p>
+      </blockquote>
+    </aside>
+  </div>
+</section>
+
+<!-- ====================== Methodology ====================== -->
+<section class="section" id="methodology">
+  <div class="section-inner reveal">
+    <p class="kicker">Our Methodology</p>
+    <h2>Data-driven. Locally calibrated.</h2>
+    <p class="lead-prose">The MDCopia Proprietary Engine draws on the most authoritative public datasets in U.S. healthcare M&amp;A. Every valuation is built from these inputs. The list below shows what we extract from each source. The multipliers and weighting that combine them are proprietary to MDCopia.</p>
+    <div class="methodology-grid">
+      <div class="meth-item">
+        <h4>NPPES NPI Registry</h4>
+        <p>Your enumeration date, primary taxonomy code, organizational affiliations, and authorized-official information.</p>
+      </div>
+      <div class="meth-item">
+        <h4>CMS Medicare Physician &amp; Other Practitioners</h4>
+        <p>Total Medicare allowed amount, beneficiary count, average risk score, and chronic-condition prevalence for your most recent reporting year.</p>
+      </div>
+      <div class="meth-item">
+        <h4>CMS Geographic Practice Cost Index (GPCI)</h4>
+        <p>The composite of work, practice expense, and malpractice indices for your specific Medicare locality.</p>
+      </div>
+      <div class="meth-item">
+        <h4>BLS Occupational Employment &amp; Wage Statistics</h4>
+        <p>The median physician compensation for your specialty in your state.</p>
+      </div>
+      <div class="meth-item">
+        <h4>BLS Consumer Price Index by Metro Area</h4>
+        <p>Your metropolitan area's cost-of-living index relative to the U.S. national average.</p>
+      </div>
+      <div class="meth-item">
+        <h4>U.S. Census Bureau ACS</h4>
+        <p>Total population, age-65+ share, 5-year population growth, and median household income for your state.</p>
+      </div>
+      <div class="meth-item">
+        <h4>MGMA &amp; AMA Benchmarks</h4>
+        <p>Published payer-mix benchmarks for your specialty: Medicare share, Medicaid share, commercial share, self-pay share.</p>
+      </div>
+      <div class="meth-item">
+        <h4>KFF State Health Facts</h4>
+        <p>Your state's Medicaid expansion status and senior-population share.</p>
+      </div>
+      <div class="meth-item">
+        <h4>Published Transaction Analyses</h4>
+        <p>Observed revenue and EBITDA multiples for recent transactions in your specialty band, sourced from FOCUS Investment Banking, Scope Research, First Page Sage, Levin Associates, HealthValue Group, and SovDoc.</p>
+      </div>
+    </div>
+    <p class="muted small-note">These inputs feed proprietary specialty-specific multiplier curves and geographic adjustment factors. The engine is continuously refined using 12-month post-transaction outcome data from completed deals on the platform.</p>
+  </div>
+</section>
+
+<!-- ====================== Your Data, Your Control ====================== -->
+<section class="section" id="data-control">
+  <div class="section-inner reveal" style="max-width:780px;">
+    <p class="kicker">Your Data. Your Control.</p>
+    <h2>Confidential by design.</h2>
+    <p>We collect only what we need to produce your valuation. We do not track you, cookie you, or fingerprint your device. Your practice information is never shared with any buyer until you have (1) seen your valuation, (2) verified your email, and (3) given explicit written consent. You can request deletion of your data at any time.</p>
+    <p>Read our <a href="privacy.html">Privacy Policy</a>, <a href="terms.html">Terms of Submission</a>, and <a href="buyer-agreement.html">Buyer Agreement</a> for full detail.</p>
+  </div>
+</section>
+
+<!-- ====================== Final CTA ====================== -->
+<section class="section cta-section reveal" id="cta-bottom">
+  <div class="section-inner" style="text-align:center;">
+    <h2 style="margin-bottom:24px;">Get your valuation in under five minutes.</h2>
+    <a class="btn btn--primary" href="valuation.html" style="padding:14px 40px;font-size:17px;">Get Your Valuation</a>
+  </div>
 </section>
 
 </main>
