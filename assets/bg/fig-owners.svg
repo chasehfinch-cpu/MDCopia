@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="og" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBF6EA"/>
+      <stop offset="0.55" stop-color="#F0E6CB"/>
+      <stop offset="1" stop-color="#D4BC7C"/>
+    </linearGradient>
+    <radialGradient id="ow" cx="0.7" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#og)"/>
+  <!-- Perspective lines toward a vanishing point upper-right (depth/corridor) -->
+  <g stroke="#8C7838" stroke-width="0.8" stroke-opacity="0.18" fill="none">
+    <line x1="0" y1="600" x2="800" y2="180"/>
+    <line x1="0" y1="540" x2="800" y2="220"/>
+    <line x1="0" y1="480" x2="800" y2="260"/>
+    <line x1="0" y1="420" x2="800" y2="300"/>
+    <line x1="0" y1="360" x2="800" y2="340"/>
+  </g>
+  <!-- Subtle horizontal "shelf lines" -->
+  <g stroke="#A88E48" stroke-width="0.6" stroke-opacity="0.14">
+    <line x1="0" y1="180" x2="800" y2="180"/>
+    <line x1="0" y1="340" x2="800" y2="340"/>
+  </g>
+  <rect width="800" height="600" fill="url(#ow)"/>
+</svg>

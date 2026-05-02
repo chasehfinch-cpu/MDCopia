@@ -545,7 +545,9 @@ main { padding-top: 80px; /* clears fixed nav */ }
   justify-content: flex-start;
   padding: 64px 24px 24px;
   text-align: center;
-  background: var(--white);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.96) 70%, var(--white) 100%),
+    url('../assets/bg/hero.svg') center/cover no-repeat var(--white);
 }
 .hero__brand {
   font-family: var(--font-display);
@@ -640,7 +642,10 @@ section[id], .section[id] { scroll-margin-top: 96px; }
 
 /* Promise band */
 .promise {
-  background: var(--royal-blue);
+  background:
+    linear-gradient(180deg, rgba(15,38,71,0.78) 0%, rgba(27,58,107,0.86) 100%),
+    url('../assets/bg/promise.svg') center/cover no-repeat,
+    var(--royal-blue);
   color: var(--white);
   padding: 56px 24px;
   text-align: center;
@@ -743,11 +748,10 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   background: linear-gradient(135deg, var(--royal-blue-pale) 0%, var(--off-white) 60%, var(--gold-pale) 100%);
 }
 .atmos-figure[data-atmos="for-owners"] {
-  /* Replaced once Phase C image lands */
-  background: linear-gradient(160deg, #E8EEF6 0%, #FBF6EA 100%);
+  background: url('../assets/bg/fig-owners.svg') center/cover no-repeat;
 }
 .atmos-figure[data-atmos="for-buyers"] {
-  background: linear-gradient(160deg, #0F2647 0%, #1B3A6B 60%, #2B5EA7 100%);
+  background: url('../assets/bg/fig-buyers.svg') center/cover no-repeat;
 }
 .atmos-figure__placeholder {
   position: absolute; inset: 0;
@@ -771,6 +775,13 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   margin-bottom: 14px;
 }
 .pull-quote p { margin: 0; }
+
+/* Methodology section background (subtle graph-paper grid) */
+#methodology {
+  background:
+    linear-gradient(180deg, rgba(247,248,250,0.85) 0%, rgba(255,255,255,0.92) 100%),
+    url('../assets/bg/methodology.svg') center/cover no-repeat;
+}
 
 /* Methodology grid */
 .methodology-grid {

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0F2647"/>
+      <stop offset="0.6" stop-color="#1B3A6B"/>
+      <stop offset="1" stop-color="#0F2647"/>
+    </linearGradient>
+    <linearGradient id="lightBeam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C5A55A" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#C5A55A" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#C5A55A" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0.5" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.4"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <!-- Vertical light bars (recessed lighting feel) -->
+  <g>
+    <rect x="120" y="0" width="2" height="600" fill="url(#lightBeam)"/>
+    <rect x="280" y="0" width="2" height="600" fill="url(#lightBeam)"/>
+    <rect x="440" y="0" width="2" height="600" fill="url(#lightBeam)"/>
+    <rect x="600" y="0" width="2" height="600" fill="url(#lightBeam)"/>
+    <rect x="720" y="0" width="2" height="600" fill="url(#lightBeam)"/>
+  </g>
+  <!-- Faint horizontal sill / table line -->
+  <line x1="0" y1="430" x2="800" y2="430" stroke="#2B5EA7" stroke-opacity="0.35" stroke-width="1"/>
+  <line x1="0" y1="432" x2="800" y2="432" stroke="#0F2647" stroke-opacity="0.6" stroke-width="1"/>
+  <rect width="800" height="600" fill="url(#vignette)"/>
+</svg>
