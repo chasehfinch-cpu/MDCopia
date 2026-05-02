@@ -551,10 +551,10 @@ main { padding-top: 80px; /* clears fixed nav */ }
 }
 .hero__brand {
   font-family: var(--font-display);
-  font-size: 64px;
+  font-size: 96px;
   font-weight: 700;
   margin: 0;
-  letter-spacing: -1px;
+  letter-spacing: -1.5px;
   line-height: 1;
   position: relative;
   display: inline-block;
@@ -853,6 +853,33 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   margin-top: 16px;
 }
 
+/* Trust-steps list inside Your Data, Your Control */
+.trust-steps {
+  list-style: none;
+  padding: 0;
+  margin: 14px auto 0;
+  max-width: 480px;
+  text-align: left;
+  font-size: 16px;
+  color: var(--dark-grey);
+}
+.trust-steps li {
+  padding: 8px 0 8px 36px;
+  position: relative;
+  border-bottom: 1px solid var(--off-white);
+}
+.trust-steps li:last-child { border-bottom: 0; }
+.trust-steps li strong {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 /* Final-CTA section (royal-blue, like a closing band) */
 .cta-section {
   background: var(--royal-blue-pale);
@@ -1016,7 +1043,7 @@ body.gate-disabled .reveal.is-visible {
   .nav__logo { font-size: 24px; padding: 4px 14px 6px; }
 
   .hero { padding: 36px 20px 16px; }
-  .hero__brand { font-size: 44px; }
+  .hero__brand { font-size: 60px; }
   .hero__sub { font-size: var(--fs-body); }
 
   .steps-grid {
