@@ -692,9 +692,11 @@ section[id], .section[id] { scroll-margin-top: 96px; }
     rgba(255,255,255,1) 100%);
   pointer-events: none;
 }
-/* Cancel double padding caused by the floating fade bands, so the next
-   section doesn't feel pushed-down. */
-.promise + .section { padding-top: 32px; }
+/* Push the section after .promise far enough down that its content sits
+   below the .promise::after fade band (the fade extends 110px below the
+   band and would otherwise wash over the kicker / heading on the next
+   section). */
+.promise + .section { padding-top: 140px; }
 .promise p {
   font-size: var(--fs-body);
   max-width: 700px;
