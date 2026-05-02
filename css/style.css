@@ -642,15 +642,23 @@ section[id], .section[id] { scroll-margin-top: 96px; }
 
 /* Promise band: pronounced bidirectional fades white→blue→white */
 .promise {
-  background:
-    linear-gradient(180deg, rgba(15,38,71,0.78) 0%, rgba(27,58,107,0.86) 100%),
-    url('../assets/bg/promise.svg') center/cover no-repeat,
-    var(--royal-blue);
+  background: var(--royal-blue);
   color: var(--white);
-  padding: 36px 24px;
+  padding: 28px 24px;
   text-align: center;
   position: relative;
   margin: 0;
+  min-height: 0;
+}
+/* Drop the SVG background entirely on the band — its 4:1 aspect was being
+   forced to 'cover' the band and visually inflating perceived height. */
+.promise p {
+  margin: 0;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: var(--fs-body);
+  line-height: 1.5;
 }
 /* Lead-in (above): white fades into royal blue, sitting OUTSIDE the band on
    top of the section above. Multi-stop easing for a deliberate blend. */
