@@ -640,29 +640,54 @@ body.gate-disabled .hero-section .hero-cta { animation: hero-fade-in 600ms ease 
 /* Anchor sections shouldn't tuck under the fixed nav on jump */
 section[id], .section[id] { scroll-margin-top: 96px; }
 
-/* Promise band */
+/* Promise band: pronounced bidirectional fades white→blue→white */
 .promise {
   background:
     linear-gradient(180deg, rgba(15,38,71,0.78) 0%, rgba(27,58,107,0.86) 100%),
     url('../assets/bg/promise.svg') center/cover no-repeat,
     var(--royal-blue);
   color: var(--white);
-  padding: 56px 24px;
+  padding: 128px 24px;
   text-align: center;
   position: relative;
+  margin: 0;
 }
-/* Soft gradient lead-in above the royal-blue band so sections fade
-   into each other instead of slamming together. */
+/* Lead-in (above): white fades into royal blue. Sits OUTSIDE the band, on
+   top of the section above it. Larger + multi-stop easing for a deliberate
+   blend rather than a hard transition. */
 .promise::before {
   content: '';
   position: absolute;
-  top: -64px;
+  top: -140px;
   left: 0;
   right: 0;
-  height: 64px;
-  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, var(--royal-blue) 100%);
+  height: 140px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,1) 0%,
+    rgba(232,238,246,1) 35%,
+    rgba(43,94,167,0.75) 75%,
+    var(--royal-blue) 100%);
   pointer-events: none;
 }
+/* Exit (below): royal blue fades back into white above the next white
+   section (For Owners). Mirror of the lead-in. */
+.promise::after {
+  content: '';
+  position: absolute;
+  bottom: -140px;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: linear-gradient(180deg,
+    var(--royal-blue) 0%,
+    rgba(43,94,167,0.75) 25%,
+    rgba(232,238,246,1) 65%,
+    rgba(255,255,255,1) 100%);
+  pointer-events: none;
+}
+/* Cancel double padding caused by the floating fade bands, so the next
+   section doesn't feel pushed-down. */
+.promise + .section { padding-top: 32px; }
 .promise p {
   font-size: var(--fs-body);
   max-width: 700px;
