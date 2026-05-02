@@ -370,12 +370,23 @@ main { padding-top: 80px; /* clears fixed nav */ }
 }
 
 .privacy-notice {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--mid-grey);
   margin: 24px 0;
-  padding: 16px;
+  padding: 10px 14px;
   background: var(--off-white);
   border-radius: var(--radius);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1.4;
+}
+@media (max-width: 768px) {
+  .privacy-notice {
+    white-space: normal;
+    font-size: 12px;
+  }
 }
 
 /* ---------- 8. Cards ---------- */
