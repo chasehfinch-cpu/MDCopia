@@ -29,6 +29,7 @@ In the Apps Script editor:
 2. Click **Run**. Authorize the script when prompted (it needs Sheet + UrlFetch access).
 3. Switch back to the Sheet — you should see four tabs: `Seller Leads`, `Buyer Inquiries`, `Transactions`, `Buyer Email Drafts`, each with bold header rows.
 4. Run `setupManualTab` once. It builds a `Manual` tab in the Sheet documenting every column on every other tab — who writes it (script/Stripe/hand), whether it's safe to edit, and what each value means. Re-run any time `HEADERS` in `Code.gs` changes.
+5. Run `setupRunbookTab` once. It builds a `Runbook` tab — a Sheet-native mirror of [OPERATIONS.md](OPERATIONS.md) — listing every recurring workflow as ordered steps, with a "Type" column telling you whether the script, Stripe, or you (menu / Sheet / editor) performs each step. Re-run any time `RUNBOOK_ROWS` changes. Both tabs (Manual + Runbook) can also be refreshed at any time from the Sheet's `MDCopia` menu.
 
 ## 4. Deploy as a Web App
 
