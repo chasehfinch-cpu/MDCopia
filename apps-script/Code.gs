@@ -600,46 +600,108 @@ function handleComputeValuation(p) {
       npiDiscrepancies.push('NPPES state "' + npi.state + '" differs from selected "' + inputs.state + '". Using your selection.');
     }
 
-    var collections = inputs.revenue * 0.95;
-    var payer = tableLookup('SPECIALTY_PAYER_DEFAULTS', inputs.specialty);
+    // Collections rate: practice-wide. CMS-derived rate (when available) only
+    // overrides the default in the single-specialty case — with a multi-specialty
+    // mix the Medicare allowed-amount can't be cleanly attributed to one slice.
+    var collectionsRate = 0.95;
     var payerMixDescription = 'National specialty defaults';
+    var cmsPayerOverride = null;
+    var isMultiSpecialty = inputs.specialties.length > 1;
 
-    if (cms && cms.medicareAllowedAmount > 0 && inputs.revenue > 0) {
+    if (cms && cms.medicareAllowedAmount > 0 && inputs.revenue > 0 && !isMultiSpecialty) {
       var medicareShare = Math.max(0, Math.min(100, (cms.medicareAllowedAmount / inputs.revenue) * 100));
+      var basePayer = tableLookup('SPECIALTY_PAYER_DEFAULTS', inputs.specialty);
       var remainder = 100 - medicareShare;
-      var baselineNonMedicare = payer.medicaid + payer.commercial + payer.selfPay;
+      var baselineNonMedicare = basePayer.medicaid + basePayer.commercial + basePayer.selfPay;
       if (baselineNonMedicare > 0) {
-        payer = {
+        cmsPayerOverride = {
           medicare:   medicareShare,
-          medicaid:   remainder * (payer.medicaid   / baselineNonMedicare),
-          commercial: remainder * (payer.commercial / baselineNonMedicare),
-          selfPay:    remainder * (payer.selfPay    / baselineNonMedicare)
+          medicaid:   remainder * (basePayer.medicaid   / baselineNonMedicare),
+          commercial: remainder * (basePayer.commercial / baselineNonMedicare),
+          selfPay:    remainder * (basePayer.selfPay    / baselineNonMedicare)
         };
         payerMixDescription = 'Derived from CMS Medicare allowed-amount data';
       }
       if (cms.collectionRate > 0 && cms.collectionRate < 1.5) {
-        collections = inputs.revenue * cms.collectionRate;
+        collectionsRate = cms.collectionRate;
       }
     }
+    var collections = inputs.revenue * collectionsRate;
 
-    // Stage 3: multipliers
-    var baseMult = engineInterpolate(getEngineTables().BASE_MULTIPLIER_ANCHORS || ENGINE_TABLES.BASE_MULTIPLIER_ANCHORS, collections);
-    var specMult = tableLookup('SPECIALTY_MULTIPLIER', inputs.specialty);
+    // Stage 3: multipliers — practice-wide factors (apply once)
     var realEstateMult = tableLookup('REAL_ESTATE_FACTOR', inputs.realEstate);
-    var timelineMult = tableLookup('TIMELINE_FACTOR', inputs.timeline);
-    var marketMult = tableLookup('STATE_MARKET_FACTOR', inputs.state);
-    var payerAdj = enginePayerMixAdj(payer);
-    var scaleAdj = engineScaleFactor(providerCount, inputs.sites);
+    var timelineMult   = tableLookup('TIMELINE_FACTOR',    inputs.timeline);
+    var marketMult     = tableLookup('STATE_MARKET_FACTOR', inputs.state);
+    var scaleAdj       = engineScaleFactor(providerCount, inputs.sites);
+    var baseAnchors    = getEngineTables().BASE_MULTIPLIER_ANCHORS || ENGINE_TABLES.BASE_MULTIPLIER_ANCHORS;
 
-    var pointEstimate = collections * baseMult * specMult * payerAdj * scaleAdj
-      * realEstateMult * timelineMult * marketMult;
+    // Per-specialty pricing loop. We slice revenue/visits/collections by visitPct,
+    // re-anchor the base multiplier on each slice's collections (so two $500k
+    // specialties don't price like one $1M practice), and apply the per-specialty
+    // SPECIALTY_MULTIPLIER + payer-mix adjustment. Practice-wide multipliers
+    // (real estate, timeline, market, scale) are applied uniformly.
+    var pointEstimate = 0;
+    var weightedSpecMult = 0;
+    var weightedBaseMult = 0;
+    var weightedPayerAdj = 0;
+    var weightedCpvBaseline = 0;
+    var weightedCpvLow = 0;
+    var weightedCpvHigh = 0;
+    var aggregatedPayer = { medicare: 0, medicaid: 0, commercial: 0, selfPay: 0 };
+    var specialtyBreakdown = [];
+
+    for (var si = 0; si < inputs.specialties.length; si++) {
+      var spec = inputs.specialties[si];
+      var weight = spec.visitPct / 100;
+      var subRevenue = inputs.revenue * weight;
+      var subCollections = subRevenue * collectionsRate;
+
+      var subSpecMult = tableLookup('SPECIALTY_MULTIPLIER', spec.name);
+      var subBaseMult = engineInterpolate(baseAnchors, subCollections);
+      var subPayer = cmsPayerOverride || tableLookup('SPECIALTY_PAYER_DEFAULTS', spec.name);
+      var subPayerAdj = enginePayerMixAdj(subPayer);
+      var subCpvBaseline = tableLookup('SPECIALTY_BASE_CPV', spec.name);
+      var subCpvRange = tableLookup('SPECIALTY_CPV_RANGE', spec.name);
+
+      var subPoint = subCollections * subBaseMult * subSpecMult * subPayerAdj * scaleAdj
+        * realEstateMult * timelineMult * marketMult;
+      pointEstimate += subPoint;
+
+      weightedSpecMult     += subSpecMult * weight;
+      weightedBaseMult     += subBaseMult * weight;
+      weightedPayerAdj     += subPayerAdj * weight;
+      weightedCpvBaseline  += subCpvBaseline * weight;
+      weightedCpvLow       += subCpvRange[0] * weight;
+      weightedCpvHigh      += subCpvRange[1] * weight;
+      aggregatedPayer.medicare   += subPayer.medicare   * weight;
+      aggregatedPayer.medicaid   += subPayer.medicaid   * weight;
+      aggregatedPayer.commercial += subPayer.commercial * weight;
+      aggregatedPayer.selfPay    += subPayer.selfPay    * weight;
+
+      specialtyBreakdown.push({
+        specialty:     spec.name,
+        visitPct:      round2(spec.visitPct),
+        subRevenue:    round2(subRevenue),
+        subCollections: round2(subCollections),
+        baseMultiplier: round4(subBaseMult),
+        specialtyMult:  round4(subSpecMult),
+        payerMixMult:   round4(subPayerAdj),
+        subPoint:       round2(subPoint)
+      });
+    }
+
+    // Display values (weighted averages for the factors panel)
+    var specMult = weightedSpecMult;
+    var baseMult = weightedBaseMult;
+    var payerAdj = weightedPayerAdj;
+    var payer = aggregatedPayer;
 
     // Stage 4
     var spread = 0.15;
     var low  = Math.round((pointEstimate * (1 - spread)) / 5000) * 5000;
     var high = Math.round((pointEstimate * (1 + spread)) / 5000) * 5000;
 
-    // Stage 5: calibration
+    // Stage 5: calibration — compare against the primary-specialty transaction band
     var txnBand = tableLookup('TRANSACTION_MULTIPLES', inputs.specialty);
     var impliedMultiple = inputs.revenue > 0 ? pointEstimate / inputs.revenue : 0;
     var calibrationFlag = !!(txnBand && (
@@ -647,15 +709,24 @@ function handleComputeValuation(p) {
       impliedMultiple > txnBand.revHigh * 1.15
     ));
 
+    var specialtyMixLabel = inputs.specialties
+      .map(function (s) { return s.name + ' ' + Math.round(s.visitPct) + '%'; })
+      .join(' · ');
+    var methodologySpecialtyPhrase = isMultiSpecialty
+      ? 'a multi-specialty practice (' + specialtyMixLabel + ')'
+      : 'a ' + inputs.specialty + ' practice';
     var methodology =
       'Valued using ' + engineFmtUSD(collections) + ' in estimated annual collections ' +
-      'for a ' + inputs.specialty + ' practice in ' + (inputs.city || 'your city') + ', ' +
-      inputs.state + '. Multipliers reflect specialty benchmarks, payer composition, ' +
+      'for ' + methodologySpecialtyPhrase + ' in ' + (inputs.city || 'your city') + ', ' +
+      inputs.state + '. ' + (isMultiSpecialty
+        ? 'Each specialty was priced on its visit-weighted slice of revenue and combined into the total. '
+        : '') +
+      'Multipliers reflect specialty benchmarks, payer composition, ' +
       'practice scale, and local market conditions.';
 
-    // CPV reference data for the report's page 2
-    var cpvBaseline = tableLookup('SPECIALTY_BASE_CPV', inputs.specialty);
-    var cpvRange = tableLookup('SPECIALTY_CPV_RANGE', inputs.specialty);
+    // CPV reference data for the report's page 2 (visit-weighted across specialties)
+    var cpvBaseline = weightedCpvBaseline;
+    var cpvRange = [weightedCpvLow, weightedCpvHigh];
     var marketCpvFactor = (marketMult + 1) / 2; // damp the market factor for CPV
     var userCpv = inputs.visits > 0 ? inputs.revenue / inputs.visits : 0;
     var expectedCpv = cpvBaseline * marketCpvFactor;
@@ -666,7 +737,7 @@ function handleComputeValuation(p) {
     // Detailed multipliers (so the report can reproduce the math line by line)
     var calc = {
       reportedRevenue:   round2(inputs.revenue),
-      collectionsRate:   round4(collections / Math.max(inputs.revenue, 1)),
+      collectionsRate:   round4(collectionsRate),
       collections:       round2(collections),
       baseMultiplier:    round4(baseMult),
       specialtyMult:     round4(specMult),
@@ -688,16 +759,20 @@ function handleComputeValuation(p) {
         high: round2(high),
         pointEstimate: round2(pointEstimate),
         methodology: methodology,
-        factors: {
-          baseMultiple:        baseMult.toFixed(2) + 'x collections',
-          specialtyAdjustment: enginePct(specMult - 1) + ' (' + inputs.specialty + ')',
-          payerMixEffect:      payerMixDescription + ' (' + enginePct(payerAdj - 1) + ')',
-          scaleEffect:         providerCount + ' provider' + (providerCount > 1 ? 's' : '') + ', ' +
-                               inputs.sites + ' site' + (inputs.sites > 1 ? 's' : '') + ' (' + enginePct(scaleAdj - 1) + ')',
-          marketFactor:        marketMult.toFixed(2) + 'x (' + inputs.state + ')',
-          realEstate:          inputs.realEstate + ' (' + enginePct(realEstateMult - 1) + ')',
-          timeline:            inputs.timeline + ' (' + enginePct(timelineMult - 1) + ')'
-        },
+        factors: (function () {
+          var f = {
+            baseMultiple:        baseMult.toFixed(2) + 'x collections',
+            specialtyAdjustment: enginePct(specMult - 1) + ' (' + (isMultiSpecialty ? 'visit-weighted' : inputs.specialty) + ')',
+            payerMixEffect:      payerMixDescription + ' (' + enginePct(payerAdj - 1) + ')',
+            scaleEffect:         providerCount + ' provider' + (providerCount > 1 ? 's' : '') + ', ' +
+                                 inputs.sites + ' site' + (inputs.sites > 1 ? 's' : '') + ' (' + enginePct(scaleAdj - 1) + ')',
+            marketFactor:        marketMult.toFixed(2) + 'x (' + inputs.state + ')',
+            realEstate:          inputs.realEstate + ' (' + enginePct(realEstateMult - 1) + ')',
+            timeline:            inputs.timeline + ' (' + enginePct(timelineMult - 1) + ')'
+          };
+          if (isMultiSpecialty) f.specialtyMix = specialtyMixLabel;
+          return f;
+        })(),
         dataSources: dataSources,
         enrichment: {
           npiValidated:           !!npi,
@@ -712,6 +787,7 @@ function handleComputeValuation(p) {
         // For the printable report (page 2)
         analysis: {
           calc: calc,
+          specialtyBreakdown: specialtyBreakdown,
           cpv: {
             user:           round2(userCpv),
             expected:       round2(expectedCpv),
@@ -742,9 +818,11 @@ function handleComputeValuation(p) {
 }
 
 function engineNormalize(raw) {
+  var primarySpecialty = String(raw.specialty || raw.practiceType || 'Other').replace(/^\s+|\s+$/g, '');
   return {
     practiceName: String(raw.practiceName || '').replace(/^\s+|\s+$/g, ''),
-    specialty:    String(raw.specialty || raw.practiceType || 'Other').replace(/^\s+|\s+$/g, ''),
+    specialty:    primarySpecialty,
+    specialties:  engineNormalizeSpecialties(raw.specialties, primarySpecialty),
     city:         String(raw.city || '').replace(/^\s+|\s+$/g, ''),
     state:        String(raw.state || '').replace(/^\s+|\s+$/g, '').toUpperCase(),
     npi:          engineNormNpi(raw.npi),
@@ -754,6 +832,38 @@ function engineNormalize(raw) {
     realEstate:   String(raw.realEstate || 'Lease').replace(/^\s+|\s+$/g, ''),
     timeline:     String(raw.timeline || '1-2 years').replace(/^\s+|\s+$/g, '')
   };
+}
+
+// Normalize the specialties array into [{name, visitPct}] summing to 100.
+// Falls back to a single-row array using the primary specialty when missing,
+// empty, or malformed (preserving determinism with the legacy single-specialty
+// payload).
+function engineNormalizeSpecialties(rawList, primary) {
+  var fallback = [{ name: primary, visitPct: 100 }];
+  if (!rawList || !rawList.length) return fallback;
+  var cleaned = [];
+  for (var i = 0; i < rawList.length; i++) {
+    var s = rawList[i] || {};
+    var name = String(s.name || '').replace(/^\s+|\s+$/g, '');
+    var pct  = Number(s.visitPct);
+    if (!name) continue;
+    if (!isFinite(pct) || pct < 0) pct = 0;
+    cleaned.push({ name: name, visitPct: pct });
+  }
+  if (!cleaned.length) return fallback;
+  // Renormalize so visitPct sums to 100 (handles small rounding drift like
+  // 33/33/33 → 33.33/33.33/33.34, and tolerates a single row with pct=0/missing).
+  var total = 0;
+  for (var j = 0; j < cleaned.length; j++) total += cleaned[j].visitPct;
+  if (total <= 0) {
+    var even = 100 / cleaned.length;
+    for (var k = 0; k < cleaned.length; k++) cleaned[k].visitPct = even;
+  } else {
+    for (var m = 0; m < cleaned.length; m++) {
+      cleaned[m].visitPct = (cleaned[m].visitPct / total) * 100;
+    }
+  }
+  return cleaned;
 }
 
 function engineParseRevenue(raw) {
@@ -981,6 +1091,13 @@ function handleSellerSubmit(p) {
   // Given does not flip TRUE until the user has verified their email. The
   // checkbox is recorded as Consent Acknowledged in the row's Status field.
   var consentAck = !!p.consentAcknowledged;
+  // Stash the multi-specialty mix inside Enrichment Data JSON without changing
+  // the sheet schema. Practice Specialty column stays as the primary specialty
+  // for grep-ability and existing report consumers.
+  var enrichmentBlob = p.enrichment || {};
+  if (Array.isArray(p.specialties) && p.specialties.length > 0) {
+    enrichmentBlob = Object.assign({}, enrichmentBlob, { specialties: p.specialties });
+  }
   var row = headerOrderedRow(TAB.SELLER, {
     'Timestamp': ts,
     'Lead ID': leadId,
@@ -1005,7 +1122,7 @@ function handleSellerSubmit(p) {
     'Valuation Range High': Number(p.valuationHigh) || 0,
     'Valuation Point': Number(p.valuationPoint) || 0,
     'Methodology': p.methodology || '',
-    'Enrichment Data': JSON.stringify(p.enrichment || {}),
+    'Enrichment Data': JSON.stringify(enrichmentBlob),
     'Factors': JSON.stringify(p.factors || {}),
     'Data Sources': (p.dataSources || []).join('; '),
     'Valuation Delivered Date': ts
@@ -1018,11 +1135,19 @@ function handleSellerSubmit(p) {
   // seen the range on screen, and the verification code email follows in <1s.
   // Two emails to the same inbox in the same minute felt like noise.
 
+  var specialtyLine;
+  if (Array.isArray(p.specialties) && p.specialties.length > 1) {
+    specialtyLine = p.specialties.map(function (s) {
+      return esc(s.name + ' (' + Math.round(Number(s.visitPct) || 0) + '%)');
+    }).join(', ');
+  } else {
+    specialtyLine = esc(p.specialty || '');
+  }
   notifyPartners({
     subject: 'New MDCopia Lead: ' + (p.practiceName || 'Unnamed') + ', ' + (p.city || '') + ', ' + (p.state || ''),
     html:
       '<p><strong>Lead ID:</strong> ' + leadId + '</p>' +
-      '<p><strong>Specialty:</strong> ' + esc(p.specialty || '') + '<br>' +
+      '<p><strong>Specialty:</strong> ' + specialtyLine + '<br>' +
       '<strong>Revenue:</strong> ' + fmt(p.revenue || 0) + '<br>' +
       '<strong>Range:</strong> ' + fmt(p.valuationLow) + ' to ' + fmt(p.valuationHigh) + '</p>' +
       '<p><strong>Email:</strong> ' + esc(p.email) + '</p>' +

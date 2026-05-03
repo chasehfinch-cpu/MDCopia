@@ -7,6 +7,7 @@ export async function submitSellerLead(formData, valuationResult) {
   const payload = {
     practiceName: formData.practiceName,
     specialty:    formData.specialty,
+    specialties:  Array.isArray(formData.specialties) ? formData.specialties : null,
     city:         formData.city,
     state:        formData.state,
     npi:          formData.npi || '',

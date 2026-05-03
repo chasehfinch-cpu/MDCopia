@@ -48,40 +48,18 @@
 <form id="valuation-form" class="form" novalidate>
 
   <div class="field">
-    <label class="field__label" for="f-practiceName">Practice Name <span class="req">*</span></label>
-    <input class="field__input" type="text" id="f-practiceName" name="practiceName" required autocomplete="organization">
-    <div class="field__helper" data-helper="practiceName"></div>
+    <label class="field__label" for="f-practiceName">Practice Name</label>
+    <input class="field__input" type="text" id="f-practiceName" name="practiceName" autocomplete="organization">
+    <div class="field__helper" data-helper="practiceName">Optional. Details provided will be used to determine practice value. Practice name aids backend valuation reconciliation and validation.</div>
   </div>
 
-  <div class="field">
-    <label class="field__label" for="f-specialty">Practice Specialty <span class="req">*</span></label>
-    <select class="field__select" id="f-specialty" name="specialty" required>
-      <option value="">Select…</option>
-      <option>Primary Care</option>
-      <option>Internal Medicine</option>
-      <option>Family Medicine</option>
-      <option>Pediatrics</option>
-      <option>OB/GYN</option>
-      <option>Cardiology</option>
-      <option>Orthopedics</option>
-      <option>Dermatology</option>
-      <option>Ophthalmology</option>
-      <option>Gastroenterology</option>
-      <option>Urology</option>
-      <option>Neurology</option>
-      <option>Psychiatry</option>
-      <option>Radiology</option>
-      <option>Anesthesiology</option>
-      <option>Emergency Medicine</option>
-      <option>General Surgery</option>
-      <option>Other</option>
-    </select>
+  <div class="field" id="specialty-section">
+    <label class="field__label">Primary Specialty <span class="req">*</span></label>
+    <div id="specialty-list"></div>
+    <button type="button" class="btn btn--secondary btn--small" id="add-specialty" style="padding:8px 16px;font-size:14px;min-height:0;margin-top:4px;">+ Add Specialty</button>
+    <div class="field__helper" id="specialty-allocation-total" hidden></div>
     <div class="field__helper" data-helper="specialty"></div>
-  </div>
-
-  <div class="field" id="f-other-wrap" hidden>
-    <label class="field__label" for="f-specialty-other">Please specify your specialty</label>
-    <input class="field__input" type="text" id="f-specialty-other" name="specialtyOther">
+    <div class="field__helper" data-helper="specialtyAllocation"></div>
   </div>
 
   <div class="field">
@@ -219,6 +197,39 @@
 </div>
 </main>
 
+<template id="specialty-row-template">
+  <div class="specialty-row" data-specialty-row>
+    <div class="specialty-row__main">
+      <select class="field__select" data-specialty-select>
+        <option value="">Select…</option>
+        <option>Primary Care</option>
+        <option>Internal Medicine</option>
+        <option>Family Medicine</option>
+        <option>Pediatrics</option>
+        <option>OB/GYN</option>
+        <option>Cardiology</option>
+        <option>Orthopedics</option>
+        <option>Dermatology</option>
+        <option>Ophthalmology</option>
+        <option>Gastroenterology</option>
+        <option>Urology</option>
+        <option>Neurology</option>
+        <option>Psychiatry</option>
+        <option>Radiology</option>
+        <option>Anesthesiology</option>
+        <option>Emergency Medicine</option>
+        <option>General Surgery</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="specialty-row__pct">
+      <input class="field__input" type="number" data-specialty-pct min="0" max="100" step="1" placeholder="% visits" aria-label="Percent of visits" hidden>
+    </div>
+    <button type="button" class="specialty-row__remove" data-remove-specialty aria-label="Remove specialty" hidden>×</button>
+    <input class="field__input specialty-row__other" type="text" data-specialty-other placeholder="Please specify your specialty" hidden>
+  </div>
+</template>
+
 <footer class="footer">
   © 2026 MDCopia, LLC · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Submission</a> · <a href="buyer-agreement.html">Buyer Agreement</a>
 </footer>
@@ -244,7 +255,141 @@ const sourcesEl = document.getElementById('sources');
 const statusEl = document.getElementById('status');
 const proceedBtn = document.getElementById('proceed-btn');
 const emailEl = document.getElementById('f-email');
-const otherWrap = document.getElementById('f-other-wrap');
+
+// ---------- Multi-specialty row manager ----------
+const specialtyList = document.getElementById('specialty-list');
+const addSpecialtyBtn = document.getElementById('add-specialty');
+const allocationTotalEl = document.getElementById('specialty-allocation-total');
+const specialtyTemplate = document.getElementById('specialty-row-template');
+const MAX_SPECIALTIES = 5;
+
+function specialtyRows() {
+  return Array.from(specialtyList.querySelectorAll('[data-specialty-row]'));
+}
+
+function addSpecialtyRow(prefill) {
+  const rows = specialtyRows();
+  if (rows.length >= MAX_SPECIALTIES) return null;
+  const node = specialtyTemplate.content.firstElementChild.cloneNode(true);
+  specialtyList.appendChild(node);
+  wireSpecialtyRow(node);
+  if (prefill) {
+    const sel = node.querySelector('[data-specialty-select]');
+    const other = node.querySelector('[data-specialty-other]');
+    const pct = node.querySelector('[data-specialty-pct]');
+    const optionValues = Array.from(sel.options).map(o => o.value || o.text);
+    if (prefill.name && optionValues.indexOf(prefill.name) >= 0) {
+      sel.value = prefill.name;
+    } else if (prefill.name) {
+      sel.value = 'Other';
+      other.hidden = false;
+      other.value = prefill.name;
+    }
+    if (prefill.visitPct != null) pct.value = prefill.visitPct;
+  }
+  refreshSpecialtyUI();
+  return node;
+}
+
+function wireSpecialtyRow(row) {
+  const sel = row.querySelector('[data-specialty-select]');
+  const other = row.querySelector('[data-specialty-other]');
+  const pct = row.querySelector('[data-specialty-pct]');
+  const removeBtn = row.querySelector('[data-remove-specialty]');
+
+  sel.addEventListener('change', () => {
+    other.hidden = sel.value !== 'Other';
+    if (sel.value !== 'Other') other.value = '';
+    triggerLiveRecalc();
+  });
+  if (other) other.addEventListener('input', triggerLiveRecalc);
+  pct.addEventListener('input', () => { refreshAllocationTotal(); triggerLiveRecalc(); });
+  removeBtn.addEventListener('click', () => {
+    row.remove();
+    rebalancePercents();
+    refreshSpecialtyUI();
+    triggerLiveRecalc();
+  });
+}
+
+function rebalancePercents() {
+  const rows = specialtyRows();
+  const n = rows.length;
+  if (n <= 1) {
+    rows.forEach(r => { r.querySelector('[data-specialty-pct]').value = ''; });
+    return;
+  }
+  // Distribute evenly with the remainder on the last row.
+  const base = Math.floor(100 / n);
+  rows.forEach((r, i) => {
+    const v = i === n - 1 ? 100 - base * (n - 1) : base;
+    r.querySelector('[data-specialty-pct]').value = String(v);
+  });
+}
+
+function refreshAllocationTotal() {
+  const rows = specialtyRows();
+  if (rows.length <= 1) {
+    allocationTotalEl.hidden = true;
+    return;
+  }
+  const sum = rows.reduce((s, r) => {
+    const v = Number(r.querySelector('[data-specialty-pct]').value) || 0;
+    return s + v;
+  }, 0);
+  const ok = Math.abs(sum - 100) <= 0.5;
+  allocationTotalEl.hidden = false;
+  allocationTotalEl.textContent = 'Visit allocation total: ' + sum + '%' + (ok ? ' ✓' : ' (must equal 100%)');
+  allocationTotalEl.classList.toggle('field__helper--error', !ok);
+}
+
+function refreshSpecialtyUI() {
+  const rows = specialtyRows();
+  const multi = rows.length > 1;
+  rows.forEach((r, i) => {
+    const pct = r.querySelector('[data-specialty-pct]');
+    const removeBtn = r.querySelector('[data-remove-specialty]');
+    pct.hidden = !multi;
+    removeBtn.hidden = i === 0;
+    r.classList.toggle('specialty-row--multi', multi);
+  });
+  addSpecialtyBtn.hidden = rows.length >= MAX_SPECIALTIES;
+  refreshAllocationTotal();
+}
+
+function collectSpecialties() {
+  return specialtyRows().map(r => {
+    const sel = r.querySelector('[data-specialty-select]');
+    const other = r.querySelector('[data-specialty-other]');
+    const pct = r.querySelector('[data-specialty-pct]');
+    let name = sel.value || '';
+    if (name === 'Other' && other.value && other.value.trim()) {
+      name = other.value.trim();
+    }
+    return {
+      name: name,
+      visitPct: pct.hidden ? 100 : (Number(pct.value) || 0)
+    };
+  });
+}
+
+addSpecialtyBtn.addEventListener('click', () => {
+  const before = specialtyRows().length;
+  const node = addSpecialtyRow(null);
+  if (node && before >= 1) rebalancePercents();
+  refreshSpecialtyUI();
+  triggerLiveRecalc();
+});
+
+// Seed at least one row
+addSpecialtyRow(null);
+
+let recalcTimer = null;
+function triggerLiveRecalc() {
+  if (!currentResult) return;
+  clearTimeout(recalcTimer);
+  recalcTimer = setTimeout(() => runEngine({ live: true }), 500);
+}
 
 const fmtUSD = new Intl.NumberFormat('en-US', {
   style: 'currency', currency: 'USD',
@@ -255,18 +400,22 @@ const fmtUSD = new Intl.NumberFormat('en-US', {
 const prior = flow.loadForm();
 if (prior) {
   for (const [k, v] of Object.entries(prior)) {
+    if (k === 'specialty' || k === 'specialties' || k === 'specialtyOther' || k === 'specialtyDisplay') continue;
     const el = form.querySelector('[name="' + k + '"]');
     if (el) el.value = v;
   }
-  if (prior.specialty === 'Other') otherWrap.hidden = false;
+  // Rebuild specialty rows from prior state
+  if (Array.isArray(prior.specialties) && prior.specialties.length > 0) {
+    specialtyList.innerHTML = '';
+    prior.specialties.forEach(s => addSpecialtyRow(s));
+    refreshSpecialtyUI();
+  } else if (prior.specialty) {
+    specialtyList.innerHTML = '';
+    addSpecialtyRow({ name: prior.specialty, visitPct: 100 });
+  }
 }
 const priorVal = flow.loadValuation();
 if (priorVal) renderResult(priorVal);
-
-// "Other" specialty toggle
-form.specialty.addEventListener('change', () => {
-  otherWrap.hidden = form.specialty.value !== 'Other';
-});
 
 // State -> City dependent dropdown
 const cityEl = document.getElementById('f-city');
@@ -326,13 +475,10 @@ emailEl.addEventListener('blur', () => { emailEl.value = normalizeEmail(emailEl.
 form.addEventListener('blur', updateHelpers, true);
 
 let currentResult = priorVal || null;
-let recalcTimer = null;
 
 form.addEventListener('input', () => {
-  if (!currentResult) return;
-  // Live re-run after first calculation: 500ms debounce
-  clearTimeout(recalcTimer);
-  recalcTimer = setTimeout(() => runEngine({ live: true }), 500);
+  // Live re-run after first calculation: 500ms debounce (shared with triggerLiveRecalc)
+  triggerLiveRecalc();
 });
 
 form.addEventListener('submit', async (e) => {
@@ -384,9 +530,12 @@ function readForm() {
   obj.revenue = parseRevenue(obj.revenue);
   obj.visits  = parseVisits(obj.visits);
   obj.sites   = Number(obj.sites) || 1;
-  if (obj.specialty === 'Other' && obj.specialtyOther) {
-    obj.specialtyDisplay = obj.specialtyOther;
-  }
+  // Multi-specialty: collect rows, prefer the array; populate single-specialty
+  // legacy fields from the primary so existing code paths and stored prior
+  // state still work.
+  obj.specialties = collectSpecialties();
+  obj.specialty = (obj.specialties[0] && obj.specialties[0].name) || '';
+  obj.specialtyDisplay = obj.specialties.map(s => s.name).filter(Boolean).join(' / ');
   // City: if "Other" selected, replace with the typed value
   if (obj.city === 'Other' && obj.cityOther) {
     obj.city = obj.cityOther.trim();
@@ -469,7 +618,7 @@ function showErrors(errors) {
   for (const [k, v] of Object.entries(errors)) {
     showHelper(k, v, true);
   }
-  for (const k of ['practiceName','specialty','city','state','revenue','visits','sites','realEstate','timeline','npi']) {
+  for (const k of ['practiceName','specialty','specialtyAllocation','city','state','revenue','visits','sites','realEstate','timeline','npi']) {
     if (!errors[k]) {
       const el = form.querySelector(`[data-helper="${k}"]`);
       if (el && el.classList.contains('field__helper--error')) {

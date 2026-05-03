@@ -24,6 +24,7 @@
 
 <button id="det">Run Determinism</button>
 <button id="cont">Run Continuity</button>
+<button id="multi">Run Multi-Specialty</button>
 <button id="off" class="secondary">Run with NPI = none (offline-safe)</button>
 <button id="custom" class="secondary">Run Custom (form below)</button>
 <button id="clear" class="secondary">Clear Output</button>
@@ -59,7 +60,7 @@
 <pre id="out">Ready.</pre>
 
 <script type="module">
-import { computeValuation, verifyDeterminism, verifyContinuity } from './engine.js';
+import { computeValuation, verifyDeterminism, verifyContinuity, verifyMultiSpecialty } from './engine.js';
 
 // Specialty / state lists for the harness dropdowns. Kept here (not in
 // the engine) so the client only knows display values, not multipliers.
@@ -114,6 +115,13 @@ document.getElementById('cont').onclick = async () => {
   log('--- Continuity ---');
   const r = await verifyContinuity();
   log(r.pass ? 'PASS ✓' : 'FAIL ✗');
+};
+
+document.getElementById('multi').onclick = async () => {
+  log('--- Multi-Specialty ---');
+  const r = await verifyMultiSpecialty();
+  log(r.pass ? 'PASS ✓' : 'FAIL ✗');
+  logObj('mix result:', r.mix);
 };
 
 document.getElementById('off').onclick = async () => {

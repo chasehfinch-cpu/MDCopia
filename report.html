@@ -295,7 +295,8 @@
         <tr><td>2</td><td>× Estimated collection rate</td><td class="num" id="c-collrate"></td></tr>
         <tr><td>3</td><td>= Collections base</td><td class="num" id="c-collections"></td></tr>
         <tr><td>4</td><td>× Base multiplier (collections curve)</td><td class="num" id="c-base"></td></tr>
-        <tr><td>5</td><td>× Specialty multiplier</td><td class="num" id="c-spec"></td></tr>
+        <tr><td>5</td><td id="c-spec-label">× Specialty multiplier</td><td class="num" id="c-spec"></td></tr>
+        <tr id="c-spec-detail-row" hidden><td></td><td colspan="2" id="c-spec-detail" style="font-size:8pt;color:var(--mid-grey);font-style:italic;padding-top:0;"></td></tr>
         <tr><td>6</td><td>× Payer mix adjustment</td><td class="num" id="c-payer"></td></tr>
         <tr><td>7</td><td>× Scale factor (providers, sites)</td><td class="num" id="c-scale"></td></tr>
         <tr><td>8</td><td>× Real-estate factor</td><td class="num" id="c-re"></td></tr>
@@ -435,7 +436,13 @@ if (f && v) {
   set('r-date2', dateStr);
 
   set('r-practice', f.practiceName || '');
-  set('r-specialty', (f.specialty === 'Other' && f.specialtyOther) ? f.specialtyOther : (f.specialty || ''));
+  // Specialty: render mix when multi-specialty, else single specialty
+  const specialtiesArr = Array.isArray(f.specialties) ? f.specialties : null;
+  const isMultiSpecialty = specialtiesArr && specialtiesArr.length > 1;
+  const specialtyDisplay = isMultiSpecialty
+    ? specialtiesArr.map(s => s.name + ' (' + Math.round(Number(s.visitPct) || 0) + '%)').join(' · ')
+    : ((f.specialty === 'Other' && f.specialtyOther) ? f.specialtyOther : (f.specialty || ''));
+  set('r-specialty', specialtyDisplay);
   set('r-location', (f.city || '') + (f.state ? ', ' + f.state : ''));
   set('r-revenue', fmtUSD.format(Number(f.revenue) || 0));
   set('r-visits', fmtInt.format(Number(f.visits) || 0));
@@ -451,6 +458,16 @@ if (f && v) {
   set('c-collections', fmtUSD.format(c.collections || 0));
   set('c-base',        (c.baseMultiplier || 0).toFixed(4) + 'x');
   set('c-spec',        (c.specialtyMult || 1).toFixed(4) + 'x');
+  // Multi-specialty contribution detail row (visible only when 2+ specialties)
+  const breakdown = (v.analysis && v.analysis.specialtyBreakdown) || [];
+  if (breakdown.length > 1) {
+    set('c-spec-label', '× Specialty multiplier (visit-weighted)');
+    const detail = breakdown
+      .map(b => b.specialty + ' ' + Math.round(b.visitPct) + '% × ' + (b.specialtyMult || 1).toFixed(2) + 'x')
+      .join(' + ');
+    set('c-spec-detail', 'Components: ' + detail);
+    document.getElementById('c-spec-detail-row').hidden = false;
+  }
   set('c-payer',       (c.payerMixMult || 1).toFixed(4) + 'x');
   set('c-scale',       (c.scaleMult || 1).toFixed(4) + 'x');
   set('c-re',          (c.realEstateMult || 1).toFixed(4) + 'x');

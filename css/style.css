@@ -306,6 +306,38 @@ main { padding-top: 80px; /* clears fixed nav */ }
 .field {
   margin-bottom: 24px;
 }
+
+/* Multi-specialty row: select + % visits + remove */
+.specialty-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+.specialty-row--multi {
+  grid-template-columns: 1fr 110px 32px;
+}
+.specialty-row__other {
+  grid-column: 1 / -1;
+}
+.specialty-row__remove {
+  background: transparent;
+  border: 1px solid var(--mid-grey, #c5c5c5);
+  border-radius: 4px;
+  width: 32px;
+  height: var(--input-h);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--mid-grey, #888);
+  padding: 0;
+}
+.specialty-row__remove:hover {
+  background: var(--off-white, #f6f6f6);
+  color: var(--royal-blue, #1B3A6B);
+  border-color: var(--royal-blue, #1B3A6B);
+}
 .field__label {
   display: block;
   font-size: var(--fs-label);
@@ -792,13 +824,13 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   margin: 0 0 28px;
   background: linear-gradient(135deg, var(--royal-blue-pale) 0%, var(--off-white) 60%, var(--gold-pale) 100%);
 }
-/* For Practice Owners: warm handshake photo with gold accent line.
+/* For Practice Owners: confident physician portrait (arms crossed, white coat).
    Linear-gradient overlay softens the photo so text neighboring the image
    stays the focal point and the photo reads as atmosphere not content. */
 .atmos-figure[data-atmos="for-owners"] {
   background:
     linear-gradient(135deg, rgba(251,246,234,0.35) 0%, rgba(255,255,255,0.10) 50%, rgba(197,165,90,0.18) 100%),
-    url('https://images.unsplash.com/photo-1686771416282-3888ddaf249b?w=900&q=70&auto=format&fit=crop') center/cover no-repeat;
+    url('https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=900&q=70&auto=format&fit=crop') center/cover no-repeat;
   box-shadow:
     inset 0 0 0 1.5px var(--gold),
     inset 0 0 0 7px rgba(255,255,255,0.85);
