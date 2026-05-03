@@ -17,6 +17,7 @@ export async function submitSellerLead(formData, valuationResult) {
     realEstate:   formData.realEstate,
     timeline:     formData.timeline,
     email:        formData.email,
+    consentAcknowledged: !!formData.consentAcknowledged,
     valuationLow:        valuationResult.low,
     valuationHigh:       valuationResult.high,
     valuationPoint:      valuationResult.pointEstimate,
