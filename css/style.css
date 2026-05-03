@@ -586,7 +586,7 @@ main { padding-top: 80px; /* clears fixed nav */ }
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 64px 24px 24px;
+  padding: 160px 24px 24px;
   text-align: center;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.96) 70%, var(--white) 100%),
@@ -662,15 +662,24 @@ body.gate-disabled .hero-section .hero-cta { animation: hero-fade-in 600ms ease 
   max-width: 360px;
   height: 1px;
   background: var(--light-grey);
-  margin: 18px auto 18px;
+  margin: 32px auto 38px;
   border: 0;
 }
 .hero__sub {
   font-size: var(--fs-lead);
   color: var(--mid-grey);
   max-width: 580px;
-  margin: 0 auto 96px;
+  margin: 0 auto 70px;
   line-height: 1.5;
+  text-align: center;
+}
+.hero__engine-credit {
+  font-size: 12px;
+  color: var(--mid-grey);
+  font-style: italic;
+  letter-spacing: 0.3px;
+  margin: 10px auto 0;
+  text-align: center;
 }
 .hero-section {
   padding-top: 0;
@@ -683,9 +692,11 @@ body.gate-disabled .hero-section .hero-cta { animation: hero-fade-in 600ms ease 
 /* Anchor sections shouldn't tuck under the fixed nav on jump */
 section[id], .section[id] { scroll-margin-top: 96px; }
 
-/* Promise band: pronounced bidirectional fades white→blue→white */
+/* Promise band: pronounced bidirectional fades white→blue→white.
+   Uses --royal-blue-light (a lighter mid-blue) so the band reads as a
+   soft tonal break rather than a heavy navy slab. */
 .promise {
-  background: var(--royal-blue);
+  background: var(--royal-blue-light);
   color: var(--white);
   padding: 28px 24px;
   text-align: center;
@@ -716,7 +727,7 @@ section[id], .section[id] { scroll-margin-top: 96px; }
     rgba(255,255,255,1) 0%,
     rgba(232,238,246,1) 40%,
     rgba(43,94,167,0.78) 80%,
-    var(--royal-blue) 100%);
+    var(--royal-blue-light) 100%);
   pointer-events: none;
 }
 /* Exit (below): royal blue fades back into white above the next white
@@ -729,7 +740,7 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   right: 0;
   height: 110px;
   background: linear-gradient(180deg,
-    var(--royal-blue) 0%,
+    var(--royal-blue-light) 0%,
     rgba(43,94,167,0.78) 20%,
     rgba(232,238,246,1) 60%,
     rgba(255,255,255,1) 100%);
@@ -1103,9 +1114,10 @@ body.gate-disabled .reveal.is-visible {
   .nav__toggle { display: block; }
   .nav__logo { font-size: 24px; padding: 4px 14px 6px; }
 
-  .hero { padding: 36px 20px 16px; }
+  .hero { padding: 120px 20px 16px; }
   .hero__brand { font-size: 60px; }
-  .hero__sub { font-size: var(--fs-body); }
+  .hero__sub { font-size: var(--fs-body); margin-bottom: 56px; }
+  .hero__rule { margin: 28px auto 28px; }
 
   .steps-grid {
     grid-template-columns: 1fr;
