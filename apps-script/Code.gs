@@ -1748,6 +1748,171 @@ function setupSheets() {
   Logger.log('Sheets initialized: ' + Object.keys(HEADERS).join(', '));
 }
 
+// ---------- Admin: Manual tab ----------
+//
+// Builds a "Manual" tab in the Sheet that documents every column on every
+// other tab. Tells the operator who writes each column (script vs Stripe vs
+// hand) and whether it's safe to edit by hand. Run once after setupSheets()
+// (or any time the schema changes) — re-running rebuilds the tab from
+// scratch from the MANUAL_ROWS literal below. Safe to edit MANUAL_ROWS in
+// code; the tab regenerates from it.
+//
+// MANUAL_ROWS is the source of truth. Order: tab → column → who writes →
+// safe-to-edit → what it stores → notes/gotchas.
+
+var MANUAL_ROWS = [
+  // ===== Seller Leads =====
+  ['Seller Leads', 'Timestamp',                'Script (seller_submit)', 'No',  'When the seller submitted the form.', 'Editing breaks audit chronology and the 12-month follow-up SLA.'],
+  ['Seller Leads', 'Lead ID',                  'Script (newLeadId)',     'No',  'Unique ID like L-20260503-XXXXXX-NNNN. Foreign key into Transactions.', 'Changing this orphans Transactions / Buyer Email Drafts that reference it.'],
+  ['Seller Leads', 'Practice Name',            'Seller (form, optional)','Yes', 'Practice name typed by the seller. May be blank.', 'Used in partner emails and the PDF report header. Title-case it for legibility.'],
+  ['Seller Leads', 'Practice Specialty',       'Script (seller_submit)', 'Caution', 'Primary specialty. Multi-specialty mix lives inside Enrichment Data JSON.', 'If you change this, also update the specialties array in Enrichment Data, otherwise the engine + display drift apart.'],
+  ['Seller Leads', 'City',                     'Seller (form)',          'Yes', 'Practice city.', 'Affects geographic snapshot in the PDF; recompute valuation if you change it.'],
+  ['Seller Leads', 'State',                    'Seller (form)',          'Caution', 'Two-letter state code.', 'STATE_MARKET_FACTOR is keyed off this; changing it changes the valuation.'],
+  ['Seller Leads', 'NPI',                      'Seller (form, optional)','Yes', '10-digit NPI. Drives NPPES + CMS enrichment.', 'Re-running the engine after edit picks up new enrichment.'],
+  ['Seller Leads', 'NPI Type',                 'Script (NPPES enrichment)', 'No', '1 = individual, 2 = organization (derived from NPPES providerCount).', 'Auto-set; changing by hand has no downstream effect.'],
+  ['Seller Leads', 'Annual Revenue',           'Seller (form)',          'Caution', 'Reported annual revenue, USD.', 'Drives the entire valuation. If you edit, recompute.'],
+  ['Seller Leads', 'Annual Visits',            'Seller (form)',          'Caution', 'Reported annual visits.', 'Drives CPV reasonableness check; with multi-specialty, % allocation lives in Enrichment Data.'],
+  ['Seller Leads', 'Sites',                    'Seller (form)',          'Yes', 'Number of physical practice sites.', 'Feeds the scale factor in the engine.'],
+  ['Seller Leads', 'Real Estate',              'Seller (form)',          'Yes', 'Own (incl), Own (not incl), Lease, or N/A.', 'Feeds REAL_ESTATE_FACTOR.'],
+  ['Seller Leads', 'Timeline',                 'Seller (form)',          'Yes', 'Sale timeline bucket.', 'Feeds TIMELINE_FACTOR.'],
+  ['Seller Leads', 'Email',                    'Seller (form)',          'No',  'Seller email — primary key for matching across requests.', 'Editing breaks send_verification + verify_code lookups for that lead.'],
+  ['Seller Leads', 'Status',                   'Script (workflow)',      'No',  'New | Consent Acknowledged - Pending Verification | Email Verified | Consented and Verified - In Marketplace | Lead Sold.', 'verify_code keys off the substring "Consent Acknowledged" — do not retype this column by hand.'],
+  ['Seller Leads', 'Verification Code',        'Script (send_verification)', 'No', '6-digit code, cleared on successful verify.', 'If a seller is locked out, clear this + Code Attempts and ask them to request a new code.'],
+  ['Seller Leads', 'Code Expiry',              'Script (send_verification)', 'No', 'Code expiration timestamp.', 'Clearing this invalidates the code.'],
+  ['Seller Leads', 'Code Attempts',            'Script (verify_code)',   'Yes', 'Failed verify attempts (cap = 3).', 'Reset to 0 to give a stuck seller more attempts.'],
+  ['Seller Leads', 'Email Verified',           'Script (verify_code)',   'No',  'TRUE once the seller types a valid code.', 'Manually flipping bypasses verification — only do this for known-good test rows.'],
+  ['Seller Leads', 'Consent Given',            'Script (verify_code)',   'No',  'TRUE once email is verified AND consent was acked at submit.', 'Backfill by hand for legacy rows where the consentAcknowledged flag was lost in transit (pre-fix). Stamp Consent Date too.'],
+  ['Seller Leads', 'Consent Date',             'Script (verify_code)',   'No',  'When Consent Given flipped to TRUE.', 'Required for §3 of the Buyer Agreement; backdate carefully.'],
+  ['Seller Leads', 'Valuation Range Low',      'Script (compute_valuation)', 'No', 'Engine low end, USD.', 'Recompute by re-submitting; do not hand-edit unless overriding for a contested lead.'],
+  ['Seller Leads', 'Valuation Range High',     'Script (compute_valuation)', 'No', 'Engine high end, USD.', 'See note on low.'],
+  ['Seller Leads', 'Valuation Point',          'Script (compute_valuation)', 'No', 'Engine point estimate.', 'Used for transaction analytics; rarely shown to seller.'],
+  ['Seller Leads', 'Methodology',              'Script (compute_valuation)', 'No', 'Plain-English methodology sentence printed on the PDF.', 'Edit only to fix a factual error in a delivered report; otherwise stale vs. live engine output.'],
+  ['Seller Leads', 'Enrichment Data',          'Script (compute_valuation, seller_submit)', 'Caution', 'JSON blob: npiValidated, providerCount, calibrationFlag, plus the multi-specialty mix (specialties array).', 'Hand-editing requires valid JSON; malformed data breaks the report renderer.'],
+  ['Seller Leads', 'Factors',                  'Script (compute_valuation)', 'No', 'JSON of the factors panel shown on screen.', 'Display-only; no downstream consumer of edits.'],
+  ['Seller Leads', 'Data Sources',             'Script (compute_valuation)', 'No', 'Semicolon-joined list of sources cited in the PDF.', 'Display-only.'],
+  ['Seller Leads', 'Valuation Delivered Date', 'Script (seller_submit)', 'No',  'When the valuation result was first written to the row.', 'Used for SLA reporting.'],
+  ['Seller Leads', 'Buyer Matched',            'Hand or sendBuyerEmail', 'Yes', 'Buyer ID / email matched to this lead.', 'Set when you send a buyer email; freeform text is OK.'],
+  ['Seller Leads', 'Lead Sold Date',           'Hand',                   'Yes', 'When the lead was sold (paid invoice).', 'Status should also flip to Lead Sold.'],
+
+  // ===== Buyer Inquiries =====
+  ['Buyer Inquiries', 'Timestamp',         'Hand',          'Yes', 'When the inquiry was logged.', 'Set this when you create the row.'],
+  ['Buyer Inquiries', 'Organization',      'Hand',          'Yes', 'Buying firm name.', ''],
+  ['Buyer Inquiries', 'Contact Name',      'Hand',          'Yes', 'Primary contact at the firm.', ''],
+  ['Buyer Inquiries', 'Email',             'Hand',          'Yes', 'Buyer email — used as foreign key into Lead Credits and Stripe customer search.', 'Keep consistent across inquiries to avoid duplicate Stripe customers.'],
+  ['Buyer Inquiries', 'Phone',             'Hand',          'Yes', '', ''],
+  ['Buyer Inquiries', 'Org Type',          'Hand',          'Yes', 'PE platform, strategic, family office, etc.', ''],
+  ['Buyer Inquiries', 'Specialties',       'Hand',          'Yes', 'Specialties they target.', 'Used to shortlist matching seller leads.'],
+  ['Buyer Inquiries', 'Geography',         'Hand',          'Yes', 'States or regions of interest.', ''],
+  ['Buyer Inquiries', 'Revenue Range',     'Hand',          'Yes', 'Practice size range they buy at.', ''],
+  ['Buyer Inquiries', 'Message',           'Hand',          'Yes', 'Anything they wrote in.', ''],
+  ['Buyer Inquiries', 'Status',            'Hand',          'Yes', 'New | Vetting | Approved | Rejected.', ''],
+  ['Buyer Inquiries', 'Vetted',            'Hand',          'Yes', 'TRUE/FALSE.', 'Required before sending leads.'],
+  ['Buyer Inquiries', 'Vetted Date',       'Hand',          'Yes', 'When vetting completed.', ''],
+  ['Buyer Inquiries', 'Agreement Signed',  'Hand',          'Yes', 'TRUE once the Buyer Agreement is signed.', 'Required before any lead can be matched per Buyer Agreement §2.'],
+
+  // ===== Transactions =====
+  ['Transactions', 'Lead ID',                  'Hand or sendBuyerEmail', 'Caution', 'Foreign key to Seller Leads.Lead ID.', 'Renaming the seller-side Lead ID orphans this row.'],
+  ['Transactions', 'Buyer ID',                 'Hand or webhook',        'Yes', 'Buyer email or short ID.', ''],
+  ['Transactions', 'Date Matched',             'Hand or sendBuyerEmail', 'Yes', 'When the buyer was first sent the lead.', ''],
+  ['Transactions', 'Valuation Range Low',      'Script (sendBuyerEmail)','Yes', 'Snapshot of the seller range at match time.', 'Read-only after match — do not refresh from the live seller row.'],
+  ['Transactions', 'Valuation Range High',     'Script (sendBuyerEmail)','Yes', 'Snapshot of the seller range at match time.', 'See note on low.'],
+  ['Transactions', 'Negotiation Started',      'Hand',                   'Yes', 'TRUE once the buyer + seller engaged.', ''],
+  ['Transactions', '12-Month Follow-Up Date',  'Hand',                   'Yes', 'Calendar reminder for the post-deal outcome check.', ''],
+  ['Transactions', 'Outcome',                  'Stripe webhook + hand',  'Yes', 'Pending | Closed | No Deal | Refunded.', 'Webhook flips to Closed/Refunded automatically when the invoice events fire.'],
+  ['Transactions', 'Close Price',              'Stripe webhook + hand',  'Yes', 'Final transaction price, USD.', 'Webhook fills this from invoice.amount_paid; override by hand if final close differs.'],
+  ['Transactions', 'Notes',                    'Stripe webhook + hand',  'Yes', 'Free-form notes. Webhook appends "inv:in_xxx · amount:$… · type" lines on each Stripe event.', 'Safe to add notes; do not delete the auto-appended Stripe event lines or you lose the audit trail.'],
+
+  // ===== Buyer Email Drafts =====
+  ['Buyer Email Drafts', 'Buyer Email',          'Hand', 'Yes', 'Where the lead email goes.', ''],
+  ['Buyer Email Drafts', 'Buyer Name',           'Hand', 'Yes', 'Recipient name.', ''],
+  ['Buyer Email Drafts', 'Buyer Org',            'Hand', 'Yes', 'Recipient firm.', ''],
+  ['Buyer Email Drafts', 'Seller Practice Name', 'Hand', 'Yes', 'Pulled from the matching Seller Leads row.', ''],
+  ['Buyer Email Drafts', 'Seller State',         'Hand', 'Yes', '', ''],
+  ['Buyer Email Drafts', 'Seller City',          'Hand', 'Yes', '', ''],
+  ['Buyer Email Drafts', 'Seller Specialty',     'Hand', 'Yes', '', ''],
+  ['Buyer Email Drafts', 'Valuation Low',        'Hand', 'Yes', '', ''],
+  ['Buyer Email Drafts', 'Valuation High',       'Hand', 'Yes', '', ''],
+  ['Buyer Email Drafts', 'Email Subject',        'Hand', 'Yes', 'Subject line of the lead email.', ''],
+  ['Buyer Email Drafts', 'Email Body',           'Hand', 'Yes', 'HTML body. Will be sent verbatim by sendBuyerEmail.', ''],
+  ['Buyer Email Drafts', 'Sent',                 'Script (sendBuyerEmail)', 'No', 'TRUE once the email goes out.', 'sendBuyerEmail refuses to re-send if TRUE; flip to FALSE only to deliberately resend.'],
+  ['Buyer Email Drafts', 'Sent Date',            'Script (sendBuyerEmail)', 'No', 'When the email was sent.', ''],
+
+  // ===== Lead Credits =====
+  ['Lead Credits', 'Buyer Email',         'Stripe webhook or issueLeadCredit', 'No',      'Foreign key to Buyer Inquiries.Email.', 'Must match exactly (case-sensitive after lower-casing) for getBuyerCreditBalance to find the row.'],
+  ['Lead Credits', 'Credit Amount USD',   'Stripe webhook or issueLeadCredit', 'No',      'Credit value at issue time.', ''],
+  ['Lead Credits', 'Issued Date',         'Stripe webhook or issueLeadCredit', 'No',      'When the credit was issued.', ''],
+  ['Lead Credits', 'Reason',              'Stripe webhook or issueLeadCredit', 'Yes',     'Refund reason or goodwill note.', 'Free-form; safe to clarify wording.'],
+  ['Lead Credits', 'Source Invoice',      'Stripe webhook',                    'No',      'Originating Stripe invoice ID for refunds.', 'Audit trail; do not edit.'],
+  ['Lead Credits', 'Applied Date',        'Script (applyLeadCredit)',          'No',      'When the credit was redeemed.', ''],
+  ['Lead Credits', 'Applied To Invoice',  'Script (applyLeadCredit)',          'No',      'Stripe invoice ID where the credit was applied.', ''],
+  ['Lead Credits', 'Remaining Balance',   'Script (applyLeadCredit)',          'No',      'USD remaining after partial redemptions.', 'Recomputed on apply; hand edits will be overwritten on next apply.'],
+  ['Lead Credits', 'Status',              'Script (workflow)',                 'No',      'Issued | Applied | Partially Applied | Expired.', '']
+];
+
+// Builds the Manual tab from MANUAL_ROWS. Re-runnable; rebuilds from scratch.
+// Run this in the Apps Script editor any time the schema changes.
+function setupManualTab() {
+  var ss = book();
+  var name = 'Manual';
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  sheet.clear();
+
+  var header = ['Tab', 'Column', 'Written by', 'Safe to edit by hand?', 'What it stores', 'Notes / gotchas'];
+  var data = [header].concat(MANUAL_ROWS);
+  sheet.getRange(1, 1, data.length, header.length).setValues(data);
+
+  // Bold + frozen + tinted header row
+  sheet.getRange(1, 1, 1, header.length)
+    .setFontWeight('bold')
+    .setBackground('#1B3A6B')
+    .setFontColor('#FFFFFF');
+  sheet.setFrozenRows(1);
+
+  // Wrap long cells; widen columns
+  sheet.getRange(1, 1, data.length, header.length).setWrap(true).setVerticalAlignment('top');
+  sheet.setColumnWidth(1, 140); // Tab
+  sheet.setColumnWidth(2, 180); // Column
+  sheet.setColumnWidth(3, 180); // Written by
+  sheet.setColumnWidth(4, 130); // Safe to edit?
+  sheet.setColumnWidth(5, 360); // What it stores
+  sheet.setColumnWidth(6, 420); // Notes
+  sheet.getRange(2, 1, MANUAL_ROWS.length, header.length).setFontSize(10);
+
+  // Color the "Safe to edit by hand?" column: No=red, Caution=amber, Yes=green
+  for (var i = 0; i < MANUAL_ROWS.length; i++) {
+    var safe = MANUAL_ROWS[i][3];
+    var bg = safe === 'No' ? '#FCE8E6' : safe === 'Caution' ? '#FEF7E0' : '#E6F4EA';
+    sheet.getRange(i + 2, 4).setBackground(bg);
+  }
+
+  // Visually separate tab-to-tab transitions with a thin border on top of the
+  // first row of each new tab.
+  var prevTab = '';
+  for (var j = 0; j < MANUAL_ROWS.length; j++) {
+    var tab = MANUAL_ROWS[j][0];
+    if (tab !== prevTab && j > 0) {
+      sheet.getRange(j + 2, 1, 1, header.length)
+        .setBorder(true, false, false, false, false, false, '#1B3A6B', SpreadsheetApp.BorderStyle.SOLID_THICK);
+    }
+    prevTab = tab;
+  }
+
+  // Intro note pinned to row 2 (below header) by inserting a row before the
+  // data rows. Done last so the indices above stay simple.
+  sheet.insertRowBefore(2);
+  sheet.getRange(2, 1, 1, header.length).merge();
+  sheet.getRange(2, 1).setValue(
+    'How to read this: each row documents one column on one tab. ' +
+    '"Written by" tells you whether the script, Stripe, or you (hand) populates it. ' +
+    '"Safe to edit by hand?" — Yes (free to edit), Caution (edit triggers a downstream effect; see notes), No (hand-edits will be overwritten or break workflows). ' +
+    'Re-run setupManualTab() in the Apps Script editor any time the schema changes.'
+  ).setBackground('#FBF6EA').setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  sheet.setRowHeight(2, 64);
+
+  Logger.log('Manual tab built: ' + MANUAL_ROWS.length + ' column rows.');
+}
+
 function sendBuyerEmail(rowNumber) {
   var ss = book();
   var sheet = ss.getSheetByName(TAB.DRAFTS);

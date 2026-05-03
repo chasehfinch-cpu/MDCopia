@@ -28,6 +28,7 @@ In the Apps Script editor:
 1. Select function dropdown → `setupSheets`.
 2. Click **Run**. Authorize the script when prompted (it needs Sheet + UrlFetch access).
 3. Switch back to the Sheet — you should see four tabs: `Seller Leads`, `Buyer Inquiries`, `Transactions`, `Buyer Email Drafts`, each with bold header rows.
+4. Run `setupManualTab` once. It builds a `Manual` tab in the Sheet documenting every column on every other tab — who writes it (script/Stripe/hand), whether it's safe to edit, and what each value means. Re-run any time `HEADERS` in `Code.gs` changes.
 
 ## 4. Deploy as a Web App
 
