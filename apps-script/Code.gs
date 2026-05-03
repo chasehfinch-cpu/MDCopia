@@ -1932,6 +1932,213 @@ function setupManualTab() {
   Logger.log('Manual tab built: ' + MANUAL_ROWS.length + ' column rows.');
 }
 
+// ---------- Admin: Runbook tab ----------
+//
+// Mirrors apps-script/OPERATIONS.md as a Sheet tab so operators don't have to
+// jump to GitHub. RUNBOOK_ROWS is the source of truth — re-running
+// setupRunbookTab rebuilds the tab from scratch from this literal.
+//
+// Row shape: [Workflow, Step, Action, Type, Notes]
+//
+// "Type" values are color-coded in the tab:
+//   Automatic     — script does it, no action from you (green)
+//   You — Menu    — use the MDCopia custom menu (light blue)
+//   You — Sheet   — hand-edit a cell on a tab (amber)
+//   You — Editor  — write a wrapper function in the Apps Script editor (orange)
+//   Stripe        — action in Stripe Dashboard (purple)
+//   Heading       — section divider, not a step (royal blue, used for trigger / outcome rows too)
+
+var RUNBOOK_ROWS = [
+  // ===== 1. New seller submits the valuation form =====
+  ['1. New seller submits the form', 'Trigger',  'Seller fills out /valuation.html and clicks Submit.', 'Heading', ''],
+  ['1. New seller submits the form', 'Auto',     'Engine computes valuation in seller\'s browser; result displayed live.', 'Automatic', ''],
+  ['1. New seller submits the form', 'Auto',     'A Seller Leads row is appended with Status = "Consent Acknowledged - Pending Verification".', 'Automatic', 'When the inline Terms checkbox was checked.'],
+  ['1. New seller submits the form', 'Auto',     'Partner notification email goes to PARTNER_EMAIL_1 / PARTNER_EMAIL_2.', 'Automatic', ''],
+  ['1. New seller submits the form', 'Auto',     'Seller redirected to /verify.html and emailed a 6-digit code.', 'Automatic', ''],
+  ['1. New seller submits the form', 'Auto',     'On valid code: Email Verified=TRUE, Consent Given=TRUE, Consent Date=now, Status="Consented and Verified - In Marketplace".', 'Automatic', ''],
+  ['1. New seller submits the form', 'You',      'Glance at the partner notification email when it arrives.', 'You — Sheet', 'No active step on the happy path.'],
+  ['1. New seller submits the form', 'Watch',    'If Consent Given stays FALSE after the seller clearly verified, run MDCopia → Backfill consent.', 'You — Menu', 'Legacy rows from before commit 805752c lost the consent flag in transit.'],
+
+  // ===== 2. Seller locked out of email verification =====
+  ['2. Seller locked out of verification', 'Trigger', 'Seller hits 3 failed code attempts; sees "Too many attempts" on /verify.html.', 'Heading', ''],
+  ['2. Seller locked out of verification', '1',       'MDCopia → Reset stuck verification (by email)…', 'You — Menu', ''],
+  ['2. Seller locked out of verification', '2',       'Enter the seller\'s email at the prompt.', 'You — Menu', ''],
+  ['2. Seller locked out of verification', '3',       'Tell the seller to go back to /verify.html and request a new code.', 'You — Sheet', 'Script clears Verification Code, Code Expiry, Code Attempts.'],
+
+  // ===== 3. Sending a lead to a buyer =====
+  ['3. Sending a lead to a buyer', 'Trigger',  'You\'ve identified a Seller Leads row that matches a vetted buyer\'s buy-box.', 'Heading', ''],
+  ['3. Sending a lead to a buyer', 'Pre-req',  'Buyer is in Buyer Inquiries with Vetted=TRUE and Agreement Signed=TRUE.', 'Heading', 'See Workflow 4 if not.'],
+  ['3. Sending a lead to a buyer', 'Pre-req',  'Seller has Consent Given=TRUE.', 'Heading', 'Sending leads where consent is FALSE violates the Buyer Agreement.'],
+  ['3. Sending a lead to a buyer', '1',        'On the Seller Leads tab, copy the Lead ID of the row.', 'You — Sheet', 'Looks like L-20260503-XXXXXX-NNNN.'],
+  ['3. Sending a lead to a buyer', '2',        'MDCopia → Prep buyer draft from Lead ID…', 'You — Menu', ''],
+  ['3. Sending a lead to a buyer', '3',        'Paste Lead ID; enter buyer email, name, org at the prompts.', 'You — Menu', ''],
+  ['3. Sending a lead to a buyer', '4',        'A Buyer Email Drafts row is appended with seller fields auto-filled and a templated subject + body. The script jumps you to that row.', 'Automatic', ''],
+  ['3. Sending a lead to a buyer', '5',        'Review the seeded body. Edit anything you want personalized.', 'You — Sheet', 'Don\'t change Lead ID or seller fields.'],
+  ['3. Sending a lead to a buyer', '6',        'MDCopia → Send drafted email (current row).', 'You — Menu', 'You should already be on the right row from step 4.'],
+  ['3. Sending a lead to a buyer', '7',        'Confirm the prompt.', 'You — Menu', ''],
+  ['3. Sending a lead to a buyer', 'Auto',     'Email sent via Resend from SELLER_FROM_EMAIL.', 'Automatic', ''],
+  ['3. Sending a lead to a buyer', 'Auto',     'Sent=TRUE, Sent Date=now stamped on the Drafts row.', 'Automatic', ''],
+  ['3. Sending a lead to a buyer', 'Auto',     'A Transactions row is appended with Lead ID, Buyer ID, Date Matched, Valuation Range Low/High, Outcome="Lead Sent".', 'Automatic', ''],
+  ['3. Sending a lead to a buyer', 'Auto',     'Buyer Matched stamped on the Seller Leads row (semicolon-appended if there were prior matches).', 'Automatic', ''],
+  ['3. Sending a lead to a buyer', '8',        'Send a Stripe invoice — see Workflow 5.', 'Stripe', ''],
+
+  // ===== 4. Vetting a new buyer =====
+  ['4. Vetting a new buyer', 'Trigger', 'A buyer reaches out (email, LinkedIn, intake form).', 'Heading', ''],
+  ['4. Vetting a new buyer', '1',       'Append a row to Buyer Inquiries: Timestamp, Organization, Contact, Email, Phone, Org Type, target Specialties, Geography, Revenue Range, Message.', 'You — Sheet', 'Set Status="New", Vetted=FALSE, Agreement Signed=FALSE.'],
+  ['4. Vetting a new buyer', '2',       'Run your standard vetting checks (background, fund size, prior track record).', 'You — Sheet', ''],
+  ['4. Vetting a new buyer', '3',       'When done, set Vetted=TRUE and Vetted Date=today.', 'You — Sheet', ''],
+  ['4. Vetting a new buyer', '4',       'Send the Buyer Agreement (e-signed via your tool of choice).', 'You — Sheet', ''],
+  ['4. Vetting a new buyer', '5',       'When countersigned, set Agreement Signed=TRUE.', 'You — Sheet', ''],
+  ['4. Vetting a new buyer', 'Outcome', 'Buyer is now eligible to receive leads (Workflow 3).', 'Heading', ''],
+
+  // ===== 5. Stripe invoicing =====
+  ['5. Stripe invoicing', 'Trigger', 'A buyer has been emailed a lead via Workflow 3; now invoice them.', 'Heading', ''],
+  ['5. Stripe invoicing', '1a',      'Single-lead invoice: in the Apps Script editor, add a wrapper near the top of Code.gs:\n\nfunction invoiceOne() {\n  createBuyerInvoice(\'buyer@firm.com\', \'L-...\', \'Practice name - City State\');\n}', 'You — Editor', '$1,000 default. Sends the buyer a hosted invoice link.'],
+  ['5. Stripe invoicing', '1b',      'Bulk / volume-discount: use createBulkInvoice(buyerEmail, [leadIds], pricePerLead, discountPct, label).', 'You — Editor', 'See SETUP.md "Stripe buyer infrastructure" §Sending a real invoice from the script.'],
+  ['5. Stripe invoicing', '2',       'Save, select your wrapper from the dropdown, click Run.', 'You — Editor', ''],
+  ['5. Stripe invoicing', 'Auto',    'Stripe invoice ID written into the Notes column of the new Transactions row.', 'Automatic', ''],
+  ['5. Stripe invoicing', 'Auto',    'When the buyer pays, Stripe webhook fires invoice.paid → Transactions Outcome="Closed", Close Price=amount.', 'Stripe', ''],
+  ['5. Stripe invoicing', 'Auto',    'Partner notification email "MDCopia: Buyer invoice paid" goes out.', 'Automatic', ''],
+
+  // ===== 6. Deal outcomes =====
+  ['6. Deal outcomes', 'Closed (paid)', 'Stripe webhook on invoice.paid sets Outcome="Closed", Close Price=amount, appends inv:in_xxx · amount:$… · paid to Notes.', 'Stripe', ''],
+  ['6. Deal outcomes', 'Refunded',      'Stripe webhook on charge.refunded sets Outcome="Refunded", auto-creates a Lead Credit row (Workflow 7).', 'Stripe', ''],
+  ['6. Deal outcomes', 'No Deal',       'Hand-edit the Transactions row: Outcome="No Deal", add Notes when the buyer formally walks.', 'You — Sheet', ''],
+  ['6. Deal outcomes', 'On Closed',     'Fill Lead Sold Date and update Status="Lead Sold" on the Seller Leads row for clean reporting.', 'You — Sheet', 'Buyer Matched is already set from Workflow 3.'],
+  ['6. Deal outcomes', 'Optional',      'Hand-set 12-Month Follow-Up Date if you want a calendar reminder for engine calibration.', 'You — Sheet', ''],
+
+  // ===== 7. Lead Credits =====
+  ['7. Lead Credits', 'Auto-issued',  'Refund a charge in Stripe Dashboard → charge.refunded webhook → Lead Credits row auto-created.', 'Stripe', 'Status="Issued", Source Invoice=in_xxx.'],
+  ['7. Lead Credits', 'Manual issue', 'Wrapper:\n\nfunction giveCredit() {\n  issueLeadCredit(\'buyer@firm.com\', 1000, \'Goodwill credit per Buyer Agreement §9\');\n}', 'You — Editor', ''],
+  ['7. Lead Credits', 'Check balance','Wrapper:\n\nfunction checkBalance() {\n  Logger.log(getBuyerCreditBalance(\'buyer@firm.com\'));\n}', 'You — Editor', 'Run, then check the Logs panel.'],
+  ['7. Lead Credits', 'Apply credit', 'After creating a Stripe invoice for the buyer:\n\nfunction redeem() {\n  applyLeadCredit(\'buyer@firm.com\', 1000, \'in_1AbC...\');\n}', 'You — Editor', 'Decrements Remaining Balance, stamps Applied Date / Applied To Invoice. Status flips to "Applied" when balance hits 0.'],
+
+  // ===== 8. Seller withdrawal =====
+  ['8. Seller withdrawal', 'Trigger', 'Seller emails sales@mdcopia.com asking to withdraw.', 'Heading', ''],
+  ['8. Seller withdrawal', '1',       'On Seller Leads, find the row by Email. Set Status="Withdrawn".', 'You — Sheet', ''],
+  ['8. Seller withdrawal', '2',       'If the lead was already sent (Buyer Matched is non-empty and Transactions row\'s Outcome is "Lead Sent" not "Closed"): email the buyer that the seller withdrew.', 'You — Sheet', ''],
+  ['8. Seller withdrawal', '3',       'Set the Transactions row\'s Outcome="No Deal" and append "Seller withdrew on YYYY-MM-DD" to Notes.', 'You — Sheet', ''],
+  ['8. Seller withdrawal', '4',       'If the buyer already paid, issue a refund in Stripe — webhook auto-creates a Lead Credit.', 'Stripe', 'Or refund cash directly per your discretion.'],
+  ['8. Seller withdrawal', '5',       'Reply to the seller confirming withdrawal.', 'You — Sheet', 'Do not delete the row — Sheet keeps it for audit.'],
+
+  // ===== 9. Periodic ops =====
+  ['9. Periodic ops', 'Weekly',    'Scan Seller Leads for Status="Email Verified" rows where Consent Given=FALSE. If consent should clearly be TRUE, MDCopia → Backfill consent.', 'You — Menu', '~5 min.'],
+  ['9. Periodic ops', 'Weekly',    'Scan Transactions for Outcome="Pending" or "Lead Sent" older than 14 days — chase the buyer for a status update.', 'You — Sheet', ''],
+  ['9. Periodic ops', 'Monthly',   'Review Lead Credits for Status="Issued" balances older than 90 days. Reach out to those buyers with eligible inventory.', 'You — Sheet', '~15 min.'],
+  ['9. Periodic ops', 'Monthly',   'Review Buyer Inquiries for Status="New" not yet vetted; either vet (Workflow 4) or close them.', 'You — Sheet', ''],
+  ['9. Periodic ops', 'Quarterly', 'Pull all Transactions with 12-Month Follow-Up Date due that quarter; email the seller for outcome data (deal closed? at what price? structure notes). Use this to calibrate the engine.', 'You — Sheet', ''],
+
+  // ===== 10. Schema or engine changes =====
+  ['10. Schema or engine changes', 'Trigger', 'You (or a PR) updated HEADERS, MANUAL_ROWS, RUNBOOK_ROWS, or engine tables in Code.gs.', 'Heading', ''],
+  ['10. Schema or engine changes', '1',       'Paste the new Code.gs into the Apps Script editor.', 'You — Editor', ''],
+  ['10. Schema or engine changes', '2',       'Deploy → Manage deployments → pencil → New version → Deploy.', 'You — Editor', 'Web app URL stays the same.'],
+  ['10. Schema or engine changes', '3',       'Reload the bound Google Sheet (so the new onOpen runs and refreshes the menu).', 'You — Sheet', ''],
+  ['10. Schema or engine changes', '4',       'MDCopia → Re-run setupSheets', 'You — Menu', 'Adds any new columns; existing data preserved.'],
+  ['10. Schema or engine changes', '5',       'MDCopia → Re-run setupManualTab', 'You — Menu', 'Refreshes Manual tab from MANUAL_ROWS.'],
+  ['10. Schema or engine changes', '6',       'MDCopia → Re-run setupRunbookTab', 'You — Menu', 'Refreshes this Runbook tab from RUNBOOK_ROWS.'],
+
+  // ===== 11. Troubleshooting =====
+  ['11. Troubleshooting', 'Symptom',  'Consent Given stays FALSE after verification.', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Legacy row from before consent-flag fix (commit 805752c).', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'MDCopia → Backfill consent.', 'You — Menu', ''],
+  ['11. Troubleshooting', 'Symptom',  'Seller can\'t get a verification code.', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Stuck attempts counter (3 failed attempts).', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'MDCopia → Reset stuck verification.', 'You — Menu', ''],
+  ['11. Troubleshooting', 'Symptom',  'prepBuyerDraft errors with "leadId required".', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Run from editor instead of menu — Apps Script Run button can\'t pass arguments.', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'MDCopia → Prep buyer draft from Lead ID.', 'You — Menu', ''],
+  ['11. Troubleshooting', 'Symptom',  'prepBuyerDraft errors with "No Seller Leads row with Lead ID …".', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Lead ID typo or whitespace.', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'Copy the Lead ID directly from the Sheet cell — don\'t retype.', 'You — Sheet', ''],
+  ['11. Troubleshooting', 'Symptom',  'Transactions row has blank Lead ID.', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Drafts row didn\'t have Lead ID set when sendBuyerEmail ran.', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'Hand-fill the Transactions row\'s Lead ID; use prep flow next time.', 'You — Sheet', ''],
+  ['11. Troubleshooting', 'Symptom',  'Stripe webhook didn\'t update Transactions.', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'Token mismatch or webhook not registered.', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'Re-check STRIPE_WEBHOOK_TOKEN Script Property + the endpoint URL in Stripe Dashboard.', 'You — Editor', ''],
+  ['11. Troubleshooting', 'Symptom',  '"Resend not configured" in logs.', 'Heading', ''],
+  ['11. Troubleshooting', 'Cause',    'RESEND_API_KEY Script Property missing.', 'Heading', ''],
+  ['11. Troubleshooting', 'Fix',      'Add it; redeploy.', 'You — Editor', '']
+];
+
+// Builds the Runbook tab from RUNBOOK_ROWS. Re-runnable; rebuilds from scratch.
+function setupRunbookTab() {
+  var ss = book();
+  var name = 'Runbook';
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  sheet.clear();
+
+  var header = ['Workflow', 'Step', 'Action', 'Type', 'Notes'];
+  var data = [header].concat(RUNBOOK_ROWS);
+  sheet.getRange(1, 1, data.length, header.length).setValues(data);
+
+  // Header styling
+  sheet.getRange(1, 1, 1, header.length)
+    .setFontWeight('bold')
+    .setBackground('#1B3A6B')
+    .setFontColor('#FFFFFF');
+  sheet.setFrozenRows(1);
+  sheet.setFrozenColumns(1);
+
+  // Wrap + alignment
+  sheet.getRange(1, 1, data.length, header.length).setWrap(true).setVerticalAlignment('top');
+  sheet.setColumnWidth(1, 220); // Workflow
+  sheet.setColumnWidth(2, 90);  // Step
+  sheet.setColumnWidth(3, 460); // Action
+  sheet.setColumnWidth(4, 120); // Type
+  sheet.setColumnWidth(5, 320); // Notes
+  sheet.getRange(2, 1, RUNBOOK_ROWS.length, header.length).setFontSize(10);
+
+  // Color the Type column by category
+  var typeColors = {
+    'Automatic':    '#E6F4EA', // green
+    'You — Menu':   '#E3F2FD', // light blue
+    'You — Sheet':  '#FEF7E0', // amber
+    'You — Editor': '#FFE0B2', // orange
+    'Stripe':       '#F3E5F5', // purple
+    'Heading':      '#1B3A6B'  // royal blue
+  };
+  for (var i = 0; i < RUNBOOK_ROWS.length; i++) {
+    var type = RUNBOOK_ROWS[i][3];
+    var bg = typeColors[type] || '#FFFFFF';
+    var range = sheet.getRange(i + 2, 4);
+    range.setBackground(bg);
+    if (type === 'Heading') {
+      range.setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(9);
+      // Heading rows: tint the entire row lightly so they read as separators.
+      sheet.getRange(i + 2, 1, 1, header.length).setBackground('#F2F6FB');
+      sheet.getRange(i + 2, 4).setBackground('#1B3A6B').setFontColor('#FFFFFF');
+    }
+  }
+
+  // Thick top border on the first row of each new workflow
+  var prev = '';
+  for (var j = 0; j < RUNBOOK_ROWS.length; j++) {
+    var wf = RUNBOOK_ROWS[j][0];
+    if (wf !== prev && j > 0) {
+      sheet.getRange(j + 2, 1, 1, header.length)
+        .setBorder(true, false, false, false, false, false, '#1B3A6B', SpreadsheetApp.BorderStyle.SOLID_THICK);
+    }
+    prev = wf;
+  }
+
+  // Intro row pinned to row 2
+  sheet.insertRowBefore(2);
+  sheet.getRange(2, 1, 1, header.length).merge();
+  sheet.getRange(2, 1).setValue(
+    'How to read this: each row is one step in one workflow. ' +
+    '"Type" tells you who acts: Automatic (script does it), You — Menu (use the MDCopia menu in the menu bar), ' +
+    'You — Sheet (hand-edit a cell), You — Editor (write a wrapper in the Apps Script editor and Run), Stripe (do it in the Stripe Dashboard), ' +
+    'Heading (section divider — a Trigger / Pre-req / Outcome / Symptom / Cause / Fix label, not a step). ' +
+    'Re-run setupRunbookTab() any time the workflows change. The MD source mirror is apps-script/OPERATIONS.md in the repo.'
+  ).setBackground('#FBF6EA').setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  sheet.setRowHeight(2, 88);
+
+  Logger.log('Runbook tab built: ' + RUNBOOK_ROWS.length + ' steps across ' +
+             new Set(RUNBOOK_ROWS.map(function (r) { return r[0]; })).size + ' workflows.');
+}
+
 function sendBuyerEmail(rowNumber) {
   var ss = book();
   var sheet = ss.getSheetByName(TAB.DRAFTS);
@@ -2080,6 +2287,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Re-run setupSheets',               'setupSheets')
     .addItem('Re-run setupManualTab',            'setupManualTab')
+    .addItem('Re-run setupRunbookTab',           'setupRunbookTab')
     .addToUi();
 }
 
