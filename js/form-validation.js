@@ -1,7 +1,7 @@
 // Client-side validation + field helper triggers for valuation.html.
 // All helpers are informational (never block submission) per CLAUDE.md spec.
 
-const REQUIRED = ['practiceName','specialty','city','state','revenue','visits','sites','realEstate','timeline'];
+const REQUIRED = ['specialty','city','state','revenue','visits','sites','realEstate','timeline'];
 
 export function validateValuationForm(data) {
   const errors = {};
@@ -9,6 +9,19 @@ export function validateValuationForm(data) {
     const v = data[key];
     if (v === undefined || v === null || String(v).trim() === '') {
       errors[key] = 'Required';
+    }
+  }
+  // Multi-specialty allocation must total 100% (±0.5 for rounding) when >1
+  if (Array.isArray(data.specialties) && data.specialties.length > 1) {
+    const sum = data.specialties.reduce((s, x) => s + (Number(x.visitPct) || 0), 0);
+    if (Math.abs(sum - 100) > 0.5) {
+      errors.specialtyAllocation = 'Visit % across specialties must total 100 (currently ' + sum.toFixed(1) + ')';
+    }
+    for (const s of data.specialties) {
+      if (!s.name || String(s.name).trim() === '') {
+        errors.specialty = 'Each specialty row must have a selection';
+        break;
+      }
     }
   }
   if (data.revenue !== '' && Number(parseRevenue(data.revenue)) <= 0) {
