@@ -445,33 +445,33 @@ main { padding-top: 80px; /* clears fixed nav */ }
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 .steps-grid .card {
   text-align: center;
-  padding: 28px 22px;
+  padding: 18px 16px;
 }
 .step__num {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 22px;
   color: var(--gold);
   font-weight: 700;
   line-height: 1;
-  margin: 0 auto 10px;
+  margin: 0 auto 6px;
 }
 .step__title {
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--near-black);
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   letter-spacing: 0.2px;
 }
 .step__desc {
-  font-size: var(--fs-small);
+  font-size: 12.5px;
   color: var(--mid-grey);
   margin: 0;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 /* Valuation result */
@@ -685,7 +685,7 @@ body.gate-disabled .hero-section .hero-cta { animation: hero-fade-in 600ms ease 
   padding-top: 0;
   padding-bottom: 96px;
 }
-.hero-section .steps-grid { max-width: 940px; margin: 0 auto 56px; }
+.hero-section .steps-grid { max-width: 880px; margin: 0 auto 32px; }
 .hero-section .hero-cta { text-align: center; }
 .hero-section .hero-cta .btn { padding: 14px 40px; font-size: 17px; }
 
@@ -1123,7 +1123,7 @@ body.gate-disabled .reveal.is-visible {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .steps-grid .card { padding: 20px 18px; }
+  .steps-grid .card { padding: 14px 14px; }
 
   .valuation-card { padding: 20px 16px; }
   .valuation-card__range { font-size: 24px; }
