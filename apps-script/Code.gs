@@ -48,7 +48,7 @@ var HEADERS = {
   'Buyer Email Drafts': [
     'Buyer Email','Buyer Name','Buyer Org','Seller Practice Name','Seller State',
     'Seller City','Seller Specialty','Valuation Low','Valuation High',
-    'Email Subject','Email Body','Sent','Sent Date'
+    'Email Subject','Email Body','Sent','Sent Date','Lead ID'
   ],
   'Lead Credits': [
     'Buyer Email','Credit Amount USD','Issued Date','Reason','Source Invoice',
@@ -1684,6 +1684,24 @@ function findSellerRowByEmail(email) {
   return null;
 }
 
+function findSellerRowByLeadId(leadId) {
+  var sheet = sellerSheet();
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return null;
+  var headers = data[0];
+  var leadCol = headers.indexOf('Lead ID');
+  if (leadCol < 0) return null;
+  var target = String(leadId).trim();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][leadCol]).trim() === target) {
+      var values = {};
+      for (var j = 0; j < headers.length; j++) values[headers[j]] = data[i][j];
+      return { row: i + 1, values: values };
+    }
+  }
+  return null;
+}
+
 function setSellerCells(row, updates) {
   var sheet = sellerSheet();
   var headers = HEADERS[TAB.SELLER];
@@ -1823,19 +1841,20 @@ var MANUAL_ROWS = [
   ['Transactions', 'Notes',                    'Stripe webhook + hand',  'Yes', 'Free-form notes. Webhook appends "inv:in_xxx · amount:$… · type" lines on each Stripe event.', 'Safe to add notes; do not delete the auto-appended Stripe event lines or you lose the audit trail.'],
 
   // ===== Buyer Email Drafts =====
-  ['Buyer Email Drafts', 'Buyer Email',          'Hand', 'Yes', 'Where the lead email goes.', ''],
-  ['Buyer Email Drafts', 'Buyer Name',           'Hand', 'Yes', 'Recipient name.', ''],
-  ['Buyer Email Drafts', 'Buyer Org',            'Hand', 'Yes', 'Recipient firm.', ''],
-  ['Buyer Email Drafts', 'Seller Practice Name', 'Hand', 'Yes', 'Pulled from the matching Seller Leads row.', ''],
-  ['Buyer Email Drafts', 'Seller State',         'Hand', 'Yes', '', ''],
-  ['Buyer Email Drafts', 'Seller City',          'Hand', 'Yes', '', ''],
-  ['Buyer Email Drafts', 'Seller Specialty',     'Hand', 'Yes', '', ''],
-  ['Buyer Email Drafts', 'Valuation Low',        'Hand', 'Yes', '', ''],
-  ['Buyer Email Drafts', 'Valuation High',       'Hand', 'Yes', '', ''],
-  ['Buyer Email Drafts', 'Email Subject',        'Hand', 'Yes', 'Subject line of the lead email.', ''],
-  ['Buyer Email Drafts', 'Email Body',           'Hand', 'Yes', 'HTML body. Will be sent verbatim by sendBuyerEmail.', ''],
+  ['Buyer Email Drafts', 'Buyer Email',          'Hand or prepBuyerDraft', 'Yes', 'Where the lead email goes.', ''],
+  ['Buyer Email Drafts', 'Buyer Name',           'Hand or prepBuyerDraft', 'Yes', 'Recipient name.', ''],
+  ['Buyer Email Drafts', 'Buyer Org',            'Hand or prepBuyerDraft', 'Yes', 'Recipient firm.', ''],
+  ['Buyer Email Drafts', 'Seller Practice Name', 'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft from the Seller Leads row keyed by Lead ID.', ''],
+  ['Buyer Email Drafts', 'Seller State',         'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft.', ''],
+  ['Buyer Email Drafts', 'Seller City',          'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft.', ''],
+  ['Buyer Email Drafts', 'Seller Specialty',     'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft.', ''],
+  ['Buyer Email Drafts', 'Valuation Low',        'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft.', ''],
+  ['Buyer Email Drafts', 'Valuation High',       'Hand or prepBuyerDraft', 'Yes', 'Auto-filled by prepBuyerDraft.', ''],
+  ['Buyer Email Drafts', 'Email Subject',        'Hand or prepBuyerDraft', 'Yes', 'Subject line of the lead email.', 'prepBuyerDraft seeds a default; review/edit before sending.'],
+  ['Buyer Email Drafts', 'Email Body',           'Hand or prepBuyerDraft', 'Yes', 'HTML body. Will be sent verbatim by sendBuyerEmail.', 'prepBuyerDraft seeds a default; review/edit before sending.'],
   ['Buyer Email Drafts', 'Sent',                 'Script (sendBuyerEmail)', 'No', 'TRUE once the email goes out.', 'sendBuyerEmail refuses to re-send if TRUE; flip to FALSE only to deliberately resend.'],
   ['Buyer Email Drafts', 'Sent Date',            'Script (sendBuyerEmail)', 'No', 'When the email was sent.', ''],
+  ['Buyer Email Drafts', 'Lead ID',              'Hand or prepBuyerDraft', 'Caution', 'Foreign key to Seller Leads.Lead ID. Optional but recommended.', 'When set, sendBuyerEmail populates Lead ID on the new Transactions row and stamps Buyer Matched on the seller row. Leave blank to skip those write-backs.'],
 
   // ===== Lead Credits =====
   ['Lead Credits', 'Buyer Email',         'Stripe webhook or issueLeadCredit', 'No',      'Foreign key to Buyer Inquiries.Email.', 'Must match exactly (case-sensitive after lower-casing) for getBuyerCreditBalance to find the row.'],
@@ -1940,18 +1959,105 @@ function sendBuyerEmail(rowNumber) {
   sheet.getRange(rowNumber, sentCol).setValue(true);
   sheet.getRange(rowNumber, dateCol).setValue(new Date());
 
-  // Log a transaction row.
+  // Log a transaction row, populating Lead ID when present so the row can be
+  // tied back to its Seller Leads source.
+  var leadId = rec['Lead ID'] || '';
   var txn = ss.getSheetByName(TAB.TXN);
   if (txn) {
-    txn.appendRow([
-      '', '', new Date(), rec['Valuation Low'] || '', rec['Valuation High'] || '',
-      false, '', 'Lead Sent', '',
-      'Buyer ' + (rec['Buyer Name'] || rec['Buyer Email']) +
-        ' contacted re: ' + (rec['Seller Practice Name'] || '')
-    ]);
+    txn.appendRow(headerOrderedRow(TAB.TXN, {
+      'Lead ID': leadId,
+      'Buyer ID': rec['Buyer Email'] || '',
+      'Date Matched': new Date(),
+      'Valuation Range Low':  rec['Valuation Low']  || '',
+      'Valuation Range High': rec['Valuation High'] || '',
+      'Negotiation Started': false,
+      'Outcome': 'Lead Sent',
+      'Notes': 'Buyer ' + (rec['Buyer Name'] || rec['Buyer Email']) +
+               ' contacted re: ' + (rec['Seller Practice Name'] || '')
+    }));
   }
 
-  Logger.log('Sent to ' + rec['Buyer Email']);
+  // Stamp Buyer Matched on the seller row so the lead is traceable from the
+  // Seller Leads side without manual cross-referencing.
+  if (leadId) {
+    var sellerInfo = findSellerRowByLeadId(leadId);
+    if (sellerInfo) {
+      var prior = String(sellerInfo.values['Buyer Matched'] || '').trim();
+      var entry = (rec['Buyer Org'] ? rec['Buyer Org'] + ' <' + rec['Buyer Email'] + '>' : rec['Buyer Email']);
+      var combined = prior ? (prior + '; ' + entry) : entry;
+      setSellerCells(sellerInfo.row, { 'Buyer Matched': combined });
+    }
+  }
+
+  Logger.log('Sent to ' + rec['Buyer Email'] + (leadId ? ' (lead ' + leadId + ')' : ''));
+}
+
+// Auto-populate a fresh Buyer Email Drafts row from a Seller Leads Lead ID.
+// Looks up the seller row, copies the relevant fields, drops a templated
+// subject/body in. Returns the appended row number for sendBuyerEmail().
+//
+// Usage in the Apps Script editor:
+//   prepBuyerDraft('L-20260503-XXXXXX-NNNN', 'buyer@firm.com', 'Jane Doe', 'Acme Capital');
+//   sendBuyerEmail(<row returned above>);
+function prepBuyerDraft(leadId, buyerEmail, buyerName, buyerOrg) {
+  if (!leadId)     throw new Error('leadId required');
+  if (!buyerEmail) throw new Error('buyerEmail required');
+  var seller = findSellerRowByLeadId(leadId);
+  if (!seller) throw new Error('No Seller Leads row with Lead ID ' + leadId);
+
+  var sv = seller.values;
+  var fmtUSD = function (n) {
+    var num = Number(n) || 0;
+    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  var practice  = sv['Practice Name'] || sv['Practice Specialty'] + ' practice';
+  var location  = (sv['City'] ? sv['City'] + ', ' : '') + (sv['State'] || '');
+  var specialty = sv['Practice Specialty'] || '';
+  var rangeLow  = sv['Valuation Range Low'];
+  var rangeHigh = sv['Valuation Range High'];
+  var rangeStr  = fmtUSD(rangeLow) + ' to ' + fmtUSD(rangeHigh);
+
+  var subject = 'New MDCopia lead: ' + practice + ' (' + location + ')';
+  var body =
+    'Hi ' + (buyerName || 'there') + ',\n\n' +
+    'A new ' + specialty + ' practice in ' + location + ' has come through MDCopia ' +
+    'and matches your buy-box. The seller has reviewed and accepted the indicative ' +
+    'valuation range below as the negotiation starting point per the MDCopia Buyer ' +
+    'Agreement.\n\n' +
+    'Practice: ' + practice + '\n' +
+    'Specialty: ' + specialty + '\n' +
+    'Location: ' + location + '\n' +
+    'Indicative range: ' + rangeStr + '\n\n' +
+    'The full MDCopia valuation memo (methodology, data sources, key factors) and ' +
+    'seller contact details are available on request. Reply to this email and we will ' +
+    'route the materials and an introduction.\n\n' +
+    'Per the Buyer Agreement, opening negotiations within the range above is the only ' +
+    'contractual obligation; final terms are yours and the seller\'s to determine.\n\n' +
+    '— MDCopia';
+
+  var sheet = book().getSheetByName(TAB.DRAFTS);
+  if (!sheet) throw new Error('Tab "' + TAB.DRAFTS + '" missing.');
+  var rowObj = {
+    'Lead ID':              leadId,
+    'Buyer Email':          buyerEmail,
+    'Buyer Name':           buyerName || '',
+    'Buyer Org':            buyerOrg  || '',
+    'Seller Practice Name': practice,
+    'Seller State':         sv['State']    || '',
+    'Seller City':          sv['City']     || '',
+    'Seller Specialty':     specialty,
+    'Valuation Low':        rangeLow || '',
+    'Valuation High':       rangeHigh || '',
+    'Email Subject':        subject,
+    'Email Body':           body,
+    'Sent':                 false,
+    'Sent Date':            ''
+  };
+  sheet.appendRow(headerOrderedRow(TAB.DRAFTS, rowObj));
+  var rowNumber = sheet.getLastRow();
+  Logger.log('Drafted row ' + rowNumber + ' for lead ' + leadId + ' → ' + buyerEmail);
+  return rowNumber;
 }
 
 // ---------- Misc ----------

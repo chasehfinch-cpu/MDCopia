@@ -167,12 +167,30 @@ When you change `Code.gs`:
 2. **Deploy → Manage deployments** → pencil icon on the existing deployment → Version: **New version** → **Deploy**.
 3. The web app URL stays the same. No site changes needed.
 
-## Sending a buyer lead manually
+## Sending a buyer lead
 
-1. In the `Buyer Email Drafts` tab, fill in a row: Buyer Email, Buyer Name, seller fields, valuation low/high, Email Subject, Email Body.
-2. In the Apps Script editor, run `sendBuyerEmail` with the row number — easiest via the editor's debugger:
-   - Open `Code.gs` → temporarily change `function sendBuyerEmail(rowNumber)` invocation to a wrapper, e.g. add `function sendRow2() { sendBuyerEmail(2); }`, save, run `sendRow2`. Or use the **Editor URL** + `?function=sendBuyerEmail&row=2` flow if you prefer.
-3. The row's `Sent` cell is set to TRUE and `Sent Date` is timestamped. A row is appended to `Transactions`.
+Two paths. Both end in the same place — a row in `Buyer Email Drafts`, a sent Resend email, and a `Transactions` row.
+
+### Recommended: auto-populate from a Lead ID
+
+1. In the `Apps Script editor`, run `prepBuyerDraft` in the editor by adding a temporary wrapper:
+   ```js
+   function draftRow() {
+     prepBuyerDraft('L-20260503-XXXXXX-NNNN', 'buyer@firm.com', 'Jane Doe', 'Acme Capital');
+   }
+   ```
+   Save, select `draftRow` from the dropdown, click Run. The function looks up the Seller Leads row by `Lead ID`, copies practice name / city / state / specialty / valuation range into a fresh `Buyer Email Drafts` row, and seeds a templated subject + body. It logs the new row number.
+2. Open the `Buyer Email Drafts` tab and review the seeded subject and body — edit anything you want to personalize.
+3. Run `sendBuyerEmail(<rowNumber>)` (using the same wrapper trick — `function sendRow() { sendBuyerEmail(N); }`).
+4. The script:
+   - Sends the email via Resend from `SELLER_FROM_EMAIL` (e.g. `sales@mdcopia.com`).
+   - Stamps `Sent = TRUE` and `Sent Date`.
+   - Appends a `Transactions` row with the `Lead ID` populated (so the row ties back to Seller Leads).
+   - Stamps `Buyer Matched` on the Seller Leads row (`Buyer Org <buyer@firm.com>`; appended with `;` if the seller already had matches).
+
+### Hand-fill an entire row
+
+Skip `prepBuyerDraft` and fill all 14 columns of a `Buyer Email Drafts` row yourself, then run `sendBuyerEmail(<rowNumber>)`. The Lead ID column is optional — leave it blank and the script skips the Transactions / Buyer Matched write-backs.
 
 ## Troubleshooting
 
