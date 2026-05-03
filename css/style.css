@@ -719,10 +719,10 @@ section[id], .section[id] { scroll-margin-top: 96px; }
 .promise::before {
   content: '';
   position: absolute;
-  top: -110px;
+  top: -56px;
   left: 0;
   right: 0;
-  height: 110px;
+  height: 56px;
   background: linear-gradient(180deg,
     rgba(255,255,255,1) 0%,
     rgba(232,238,246,1) 40%,
@@ -735,10 +735,10 @@ section[id], .section[id] { scroll-margin-top: 96px; }
 .promise::after {
   content: '';
   position: absolute;
-  bottom: -110px;
+  bottom: -56px;
   left: 0;
   right: 0;
-  height: 110px;
+  height: 56px;
   background: linear-gradient(180deg,
     var(--royal-blue-light) 0%,
     rgba(43,94,167,0.78) 20%,
@@ -747,10 +747,10 @@ section[id], .section[id] { scroll-margin-top: 96px; }
   pointer-events: none;
 }
 /* Push the section after .promise far enough down that its content sits
-   below the .promise::after fade band (the fade extends 110px below the
+   below the .promise::after fade band (the fade now extends 56px below the
    band and would otherwise wash over the kicker / heading on the next
    section). */
-.promise + .section { padding-top: 140px; }
+.promise + .section { padding-top: 84px; }
 .promise p {
   font-size: var(--fs-body);
   max-width: 700px;
@@ -1114,7 +1114,7 @@ body.gate-disabled .reveal.is-visible {
   .nav__toggle { display: block; }
   .nav__logo { font-size: 24px; padding: 4px 14px 6px; }
 
-  .hero { padding: 120px 20px 16px; }
+  .hero { padding: 120px 20px 80px; }
   .hero__brand { font-size: 60px; }
   .hero__sub { font-size: var(--fs-body); margin-bottom: 56px; }
   .hero__rule { margin: 28px auto 28px; }

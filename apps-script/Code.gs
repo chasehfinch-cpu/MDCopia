@@ -2060,6 +2060,121 @@ function prepBuyerDraft(leadId, buyerEmail, buyerName, buyerOrg) {
   return rowNumber;
 }
 
+// ---------- Sheet UI menu ----------
+//
+// Apps Script's Run-from-editor button can't pass arguments, so calling
+// prepBuyerDraft / sendBuyerEmail / etc. directly from the editor dropdown
+// throws "leadId required". This onOpen installs a custom MDCopia menu in
+// the Sheet's menu bar that prompts for the inputs interactively. After
+// pasting an updated Code.gs into the editor, reload the Sheet once to
+// trigger onOpen — the menu appears on the right side of the menu bar.
+
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('MDCopia')
+    .addItem('Prep buyer draft from Lead ID…',  'menuPrepBuyerDraft')
+    .addItem('Send drafted email (current row)', 'menuSendCurrentRow')
+    .addSeparator()
+    .addItem('Backfill consent (legacy rows)',   'menuBackfillConsent')
+    .addItem('Reset stuck verification (by email)…', 'menuResetVerification')
+    .addSeparator()
+    .addItem('Re-run setupSheets',               'setupSheets')
+    .addItem('Re-run setupManualTab',            'setupManualTab')
+    .addToUi();
+}
+
+function menuPrepBuyerDraft() {
+  var ui = SpreadsheetApp.getUi();
+  var leadIdResp = ui.prompt('Prep Buyer Draft', 'Lead ID (from Seller Leads tab):', ui.ButtonSet.OK_CANCEL);
+  if (leadIdResp.getSelectedButton() !== ui.Button.OK) return;
+  var emailResp = ui.prompt('Prep Buyer Draft', 'Buyer email:', ui.ButtonSet.OK_CANCEL);
+  if (emailResp.getSelectedButton() !== ui.Button.OK) return;
+  var nameResp = ui.prompt('Prep Buyer Draft', 'Buyer name (optional):', ui.ButtonSet.OK_CANCEL);
+  if (nameResp.getSelectedButton() !== ui.Button.OK) return;
+  var orgResp = ui.prompt('Prep Buyer Draft', 'Buyer org (optional):', ui.ButtonSet.OK_CANCEL);
+  if (orgResp.getSelectedButton() !== ui.Button.OK) return;
+
+  try {
+    var rowNumber = prepBuyerDraft(
+      String(leadIdResp.getResponseText() || '').trim(),
+      String(emailResp.getResponseText()  || '').trim(),
+      String(nameResp.getResponseText()   || '').trim(),
+      String(orgResp.getResponseText()    || '').trim()
+    );
+    SpreadsheetApp.setActiveSheet(book().getSheetByName(TAB.DRAFTS));
+    book().getSheetByName(TAB.DRAFTS).getRange(rowNumber, 1).activate();
+    ui.alert('Drafted row ' + rowNumber + '. Review the seeded subject and body, then use MDCopia → Send drafted email.');
+  } catch (err) {
+    ui.alert('Could not prep draft: ' + (err && err.message || err));
+  }
+}
+
+function menuSendCurrentRow() {
+  var ui = SpreadsheetApp.getUi();
+  var sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getName() !== TAB.DRAFTS) {
+    ui.alert('Open the "' + TAB.DRAFTS + '" tab and click any cell on the row you want to send first.');
+    return;
+  }
+  var rowNumber = sheet.getActiveRange().getRow();
+  if (rowNumber < 2) { ui.alert('That is the header row. Pick a data row.'); return; }
+  var confirm = ui.alert('Send buyer email', 'Send the email on row ' + rowNumber + '?', ui.ButtonSet.YES_NO);
+  if (confirm !== ui.Button.YES) return;
+  try {
+    sendBuyerEmail(rowNumber);
+    ui.alert('Sent. Sent flag and Sent Date are stamped; Transactions row appended; Buyer Matched updated on the seller row (if Lead ID was set).');
+  } catch (err) {
+    ui.alert('Send failed: ' + (err && err.message || err));
+  }
+}
+
+function menuBackfillConsent() {
+  var ui = SpreadsheetApp.getUi();
+  var confirm = ui.alert(
+    'Backfill consent',
+    'For every Seller Leads row where Email Verified = TRUE and Consent Given = FALSE, ' +
+    'set Consent Given = TRUE, Consent Date = today, and Status = "Consented and Verified - In Marketplace". ' +
+    'Use this only after the consent-payload bug fix is deployed and only for rows where you know the seller did acknowledge consent. Continue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+  var sheet = sellerSheet();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var verifiedCol = headers.indexOf('Email Verified');
+  var consentCol  = headers.indexOf('Consent Given');
+  var consentDateCol = headers.indexOf('Consent Date');
+  var statusCol      = headers.indexOf('Status');
+  if (verifiedCol < 0 || consentCol < 0) { ui.alert('Required columns missing.'); return; }
+  var now = new Date();
+  var n = 0;
+  for (var i = 1; i < data.length; i++) {
+    var verified = data[i][verifiedCol];
+    var consent  = data[i][consentCol];
+    if ((verified === true || verified === 'TRUE') && !(consent === true || consent === 'TRUE')) {
+      sheet.getRange(i + 1, consentCol + 1).setValue(true);
+      if (consentDateCol >= 0) sheet.getRange(i + 1, consentDateCol + 1).setValue(now);
+      if (statusCol      >= 0) sheet.getRange(i + 1, statusCol + 1).setValue('Consented and Verified - In Marketplace');
+      n++;
+    }
+  }
+  ui.alert('Backfilled ' + n + ' row' + (n === 1 ? '' : 's') + '.');
+}
+
+function menuResetVerification() {
+  var ui = SpreadsheetApp.getUi();
+  var resp = ui.prompt('Reset verification', 'Seller email to reset:', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var rowInfo = findSellerRowByEmail(String(resp.getResponseText() || '').trim());
+  if (!rowInfo) { ui.alert('No seller row found for that email.'); return; }
+  setSellerCells(rowInfo.row, {
+    'Verification Code': '',
+    'Code Expiry': '',
+    'Code Attempts': 0
+  });
+  ui.alert('Cleared. Ask the seller to request a new code at /verify.html.');
+}
+
 // ---------- Misc ----------
 
 function newLeadId() {
